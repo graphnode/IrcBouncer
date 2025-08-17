@@ -92,7 +92,7 @@ internal static class Program
                     : 6697;
             
             var finalNick = string.IsNullOrWhiteSpace(nick) 
-                ? Environment.GetEnvironmentVariable("IRC_NICK") ?? ("IrcBouncer" + RandomNumberGenerator.GetInt32(1000, 9999)) 
+                ? Environment.GetEnvironmentVariable("IRC_NICK") ?? "IrcBouncer" + RandomNumberGenerator.GetInt32(1000, 9999) 
                 : nick;
             
             var finalUser = string.IsNullOrWhiteSpace(user) 
@@ -109,8 +109,7 @@ internal static class Program
                 : Environment.GetEnvironmentVariable("IRC_PASS");
 
             // TLS configuration: CLI flags take precedence, then environment variable, then default to true
-            var useTls = tls || (!tls && !notls && 
-                (Environment.GetEnvironmentVariable("IRC_TLS")?.ToLowerInvariant() != "false")); // default to true unless explicitly disabled
+            var useTls = tls || (!tls && !notls && Environment.GetEnvironmentVariable("IRC_TLS")?.ToUpperInvariant() != "FALSE"); // default to true unless explicitly disabled
             
             var code = await RunAsync(finalServer, finalPort, useTls, finalNick, finalUser, finalReal, finalPass, cancellationToken).ConfigureAwait(false);
             Environment.ExitCode = code;
@@ -127,7 +126,7 @@ internal static class Program
         return await parseResult.InvokeAsync().ConfigureAwait(false);
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
+    [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
     private static async Task<int> RunAsync(string server, int port, bool useTls, string nick, string user, string real, string? pass, CancellationToken cancellationToken)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -139,7 +138,7 @@ internal static class Program
             e.Cancel = true; 
             Console.WriteLine("\nGraceful shutdown requested...");
             gracefulShutdownRequested = true;
-            cts.Cancel(); 
+            await cts.CancelAsync().ConfigureAwait(false); 
         };
 
         Console.WriteLine($"Connecting to {server}:{port} (TLS={useTls}) as {nick} ... Press Ctrl+C to quit.");
@@ -185,7 +184,7 @@ internal static class Program
                     if (isCommand)
                     {
                         var cmdLine = original[1..];
-                        var spaceIndex = cmdLine.IndexOf(' ', StringComparison.Ordinal);
+                        var spaceIndex = cmdLine.IndexOf(' ', StringComparison.InvariantCulture);
                         if (spaceIndex > 0)
                         {
                             commandUpper = cmdLine[..spaceIndex].ToUpperInvariant();
@@ -244,31 +243,31 @@ internal static class Program
             {
                 try
                 {
-                    Console.WriteLine("Sending QUIT command...");
-                    await ircClient.SendAsync("QUIT :Graceful shutdown").ConfigureAwait(false);
+                    Console.WriteLine(@"Sending QUIT command...");
+                    await ircClient.SendAsync("QUIT :Graceful shutdown", cts.Token).ConfigureAwait(false);
                     
-                    Console.WriteLine("Disconnecting...");
+                    Console.WriteLine(@"Disconnecting...");
                     ircClient.Disconnect();
                     
-                    Console.WriteLine("Waiting for disconnect confirmation...");
+                    Console.WriteLine(@"Waiting for disconnect confirmation...");
                     // Wait for Disconnected event with a timeout
                     using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                     await disconnectedTcs.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
-                    Console.WriteLine("Graceful shutdown timeout, forcing exit.");
+                    Console.WriteLine(@"Graceful shutdown timeout, forcing exit.");
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error during graceful shutdown: {ex.Message}");
+                    await Console.Error.WriteLineAsync($"Error during graceful shutdown: {ex.Message}").ConfigureAwait(false);
                 }
             }
         }
         catch (Exception ex)
         {
             if (ex is not OperationCanceledException)
-                Console.Error.WriteLine($"Connection error: {ex.Message}");
+                await Console.Error.WriteLineAsync($"Connection error: {ex.Message}").ConfigureAwait(false);
         }
         
         return 0;

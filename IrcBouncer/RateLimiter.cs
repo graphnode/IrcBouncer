@@ -3,7 +3,7 @@
 /// <summary>
 /// Configuration options for IRC rate limiting.
 /// </summary>
-public sealed class RateLimitOptions
+internal sealed class RateLimitOptions
 {
     /// <summary>
     /// Maximum number of messages per time window. Default: 5.
@@ -25,16 +25,11 @@ public sealed class RateLimitOptions
 /// Simple token bucket rate limiter for IRC messages.
 /// Prevents server flood-kick by limiting outgoing message rate.
 /// </summary>
-internal sealed class RateLimiter
+internal sealed class RateLimiter(RateLimitOptions options) : IDisposable
 {
-    private readonly RateLimitOptions _options;
+    private readonly RateLimitOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly Queue<DateTime> _messageTimestamps = new();
-
-    public RateLimiter(RateLimitOptions options)
-    {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-    }
 
     /// <summary>
     /// Waits until it's safe to send a message according to rate limiting rules.
@@ -115,8 +110,5 @@ internal sealed class RateLimiter
         }
     }
 
-    public void Dispose()
-    {
-        _semaphore.Dispose();
-    }
+    public void Dispose() => _semaphore.Dispose();
 }

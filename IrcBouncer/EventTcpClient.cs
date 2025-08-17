@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace IrcBouncer;
@@ -8,7 +9,7 @@ namespace IrcBouncer;
 /// <summary>
 /// Configuration options for EventTcpClient connection behavior.
 /// </summary>
-public sealed class TcpConnectionOptions
+internal sealed class TcpConnectionOptions
 {
     /// <summary>
     /// Connection timeout in milliseconds. Default: 30000 (30 seconds).
@@ -18,7 +19,7 @@ public sealed class TcpConnectionOptions
     /// <summary>
     /// Read timeout in milliseconds. 0 means no timeout. Default: 0.
     /// </summary>
-    public int ReadTimeoutMs { get; set; } = 0;
+    public int ReadTimeoutMs { get; set; }
 
     /// <summary>
     /// Write timeout in milliseconds. Default: 30000 (30 seconds).
@@ -99,8 +100,7 @@ internal sealed class EventTcpClient : IConnection
     /// </summary>
     public async Task ConnectAsync(string host, int port, bool useTls = true, CancellationToken? cancellationToken = null)
     {
-        if (_disposed)
-            throw new ObjectDisposedException(nameof(EventTcpClient));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(EventTcpClient));
 
         _connectionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken ?? CancellationToken.None);
         
@@ -120,19 +120,22 @@ internal sealed class EventTcpClient : IConnection
                 _client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 
                 // Set keep-alive timing (Windows-specific, gracefully handled on other platforms)
-                try
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    var keepAliveValues = new byte[12];
-                    BitConverter.GetBytes((uint)1).CopyTo(keepAliveValues, 0); // Enable
-                    BitConverter.GetBytes((uint)_options.KeepAliveTimeMs).CopyTo(keepAliveValues, 4); // Time before first probe
-                    BitConverter.GetBytes((uint)_options.KeepAliveIntervalMs).CopyTo(keepAliveValues, 8); // Interval between probes
-                    
-                    _client.Client.IOControl(IOControlCode.KeepAliveValues, keepAliveValues, null);
-                }
-                catch
-                {
-                    // Keep-alive timing configuration failed (likely non-Windows platform)
-                    // Basic keep-alive is still enabled via SetSocketOption above
+                    try
+                    {
+                        var keepAliveValues = new byte[12];
+                        BitConverter.GetBytes((uint)1).CopyTo(keepAliveValues, 0); // Enable
+                        BitConverter.GetBytes((uint)_options.KeepAliveTimeMs).CopyTo(keepAliveValues, 4); // Time before first probe
+                        BitConverter.GetBytes((uint)_options.KeepAliveIntervalMs).CopyTo(keepAliveValues, 8); // Interval between probes
+
+                        _client.Client.IOControl(IOControlCode.KeepAliveValues, keepAliveValues, null);
+                    }
+                    catch
+                    {
+                        // Keep-alive timing configuration failed
+                        // Basic keep-alive is still enabled via SetSocketOption above
+                    }
                 }
             }
 
@@ -162,7 +165,7 @@ internal sealed class EventTcpClient : IConnection
                 }
                 catch (Exception ex)
                 {
-                    ssl.Dispose();
+                    await ssl.DisposeAsync().ConfigureAwait(false);
                     if (ex is not OperationCanceledException)
                         ConnectionError?.Invoke(this, ex);
                     return;
@@ -200,7 +203,7 @@ internal sealed class EventTcpClient : IConnection
     /// Writes a line of data to the remote endpoint with optional cancellation support.
     /// Concurrent writes are serialized to avoid interleaving and ObjectDisposed exceptions.
     /// </summary>
-    public async Task Write(string line, CancellationToken cancellationToken = default)
+    public async Task Write(string line, CancellationToken cancellationToken)
     {
         if (_disposed || _writer == null)
             return;
@@ -208,7 +211,7 @@ internal sealed class EventTcpClient : IConnection
         await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_writer == null || _disposed)
+            if (_disposed)
                 return;
             
             await _writer.WriteLineAsync(line.AsMemory(), cancellationToken).ConfigureAwait(false);

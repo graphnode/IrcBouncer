@@ -220,6 +220,7 @@ internal sealed class IrcClient : IDisposable
         _connection.Disconnected -= OnConnectionDisconnected;
         
         _connection.Dispose();
+        _rateLimiter.Dispose();
         _disposed = true;
     }
 }

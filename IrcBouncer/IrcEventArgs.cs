@@ -3,7 +3,7 @@
 /// <summary>
 /// Base class for IRC event arguments containing common message information.
 /// </summary>
-public abstract class IrcEventArgsBase : EventArgs
+internal abstract class IrcEventArgsBase : EventArgs
 {
     /// <summary>
     /// The original raw IRC message.
@@ -30,7 +30,7 @@ public abstract class IrcEventArgsBase : EventArgs
 /// <summary>
 /// Event arguments for PRIVMSG messages.
 /// </summary>
-public sealed class IrcPrivmsgEventArgs : IrcEventArgsBase
+internal sealed class IrcPrivmsgEventArgs : IrcEventArgsBase
 {
     /// <summary>
     /// The target of the message (channel or nick).
@@ -57,7 +57,7 @@ public sealed class IrcPrivmsgEventArgs : IrcEventArgsBase
 /// <summary>
 /// Event arguments for NOTICE messages.
 /// </summary>
-public sealed class IrcNoticeEventArgs : IrcEventArgsBase
+internal sealed class IrcNoticeEventArgs : IrcEventArgsBase
 {
     /// <summary>
     /// The target of the notice (channel or nick).
@@ -79,7 +79,7 @@ public sealed class IrcNoticeEventArgs : IrcEventArgsBase
 /// <summary>
 /// Event arguments for JOIN messages.
 /// </summary>
-public sealed class IrcJoinEventArgs : IrcEventArgsBase
+internal sealed class IrcJoinEventArgs : IrcEventArgsBase
 {
     /// <summary>
     /// The channel that was joined.
@@ -102,7 +102,7 @@ public sealed class IrcJoinEventArgs : IrcEventArgsBase
         if (string.IsNullOrEmpty(prefix))
             return string.Empty;
 
-        var exclamationIndex = prefix.IndexOf('!');
+        var exclamationIndex = prefix.IndexOf('!', StringComparison.InvariantCulture);
         return exclamationIndex > 0 ? prefix[..exclamationIndex] : prefix;
     }
 }
@@ -110,7 +110,7 @@ public sealed class IrcJoinEventArgs : IrcEventArgsBase
 /// <summary>
 /// Event arguments for PART messages.
 /// </summary>
-public sealed class IrcPartEventArgs : IrcEventArgsBase
+internal sealed class IrcPartEventArgs : IrcEventArgsBase
 {
     /// <summary>
     /// The channel that was left.
@@ -139,7 +139,7 @@ public sealed class IrcPartEventArgs : IrcEventArgsBase
         if (string.IsNullOrEmpty(prefix))
             return string.Empty;
 
-        var exclamationIndex = prefix.IndexOf('!');
+        var exclamationIndex = prefix.IndexOf('!', StringComparison.InvariantCulture);
         return exclamationIndex > 0 ? prefix[..exclamationIndex] : prefix;
     }
 }
@@ -147,7 +147,7 @@ public sealed class IrcPartEventArgs : IrcEventArgsBase
 /// <summary>
 /// Event arguments for ERROR messages from the server.
 /// </summary>
-public sealed class IrcErrorEventArgs : IrcEventArgsBase
+internal sealed class IrcErrorEventArgs : IrcEventArgsBase
 {
     /// <summary>
     /// The error message from the server.

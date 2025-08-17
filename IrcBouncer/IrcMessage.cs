@@ -4,7 +4,7 @@
 /// Represents a structured IRC message with prefix, command, parameters, and trailing text.
 /// Follows RFC 2812 message format: [:prefix] command [params] [:trailing]
 /// </summary>
-public sealed class IrcMessage
+internal sealed class IrcMessage
 {
     /// <summary>
     /// Optional prefix (typically server name or nick!user@host).
@@ -61,7 +61,7 @@ public sealed class IrcMessage
             if (parts[i].StartsWith(':'))
             {
                 // This is the start of trailing - join all remaining parts
-                var trailingStart = rawMessage.IndexOf($" :{parts[i][1..]}", StringComparison.Ordinal);
+                var trailingStart = rawMessage.IndexOf($" :{parts[i][1..]}", StringComparison.InvariantCulture);
                 if (trailingStart >= 0)
                 {
                     message.Trailing = rawMessage[(trailingStart + 2)..]; // Skip " :"
