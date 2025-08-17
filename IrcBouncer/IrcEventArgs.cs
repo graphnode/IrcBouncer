@@ -3,7 +3,7 @@
 /// <summary>
 /// Base class for IRC event arguments containing common message information.
 /// </summary>
-internal abstract class IrcEventArgsBase : EventArgs
+public abstract class IrcEventArgsBase : EventArgs
 {
     /// <summary>
     /// The original raw IRC message.
@@ -30,7 +30,7 @@ internal abstract class IrcEventArgsBase : EventArgs
 /// <summary>
 /// Event arguments for PRIVMSG messages.
 /// </summary>
-internal sealed class IrcPrivmsgEventArgs : IrcEventArgsBase
+public sealed class IrcPrivmsgEventArgs : IrcEventArgsBase
 {
     /// <summary>
     /// The target of the message (channel or nick).
@@ -57,7 +57,7 @@ internal sealed class IrcPrivmsgEventArgs : IrcEventArgsBase
 /// <summary>
 /// Event arguments for NOTICE messages.
 /// </summary>
-internal sealed class IrcNoticeEventArgs : IrcEventArgsBase
+public sealed class IrcNoticeEventArgs : IrcEventArgsBase
 {
     /// <summary>
     /// The target of the notice (channel or nick).
@@ -79,7 +79,7 @@ internal sealed class IrcNoticeEventArgs : IrcEventArgsBase
 /// <summary>
 /// Event arguments for JOIN messages.
 /// </summary>
-internal sealed class IrcJoinEventArgs : IrcEventArgsBase
+public sealed class IrcJoinEventArgs : IrcEventArgsBase
 {
     /// <summary>
     /// The channel that was joined.
@@ -110,7 +110,7 @@ internal sealed class IrcJoinEventArgs : IrcEventArgsBase
 /// <summary>
 /// Event arguments for PART messages.
 /// </summary>
-internal sealed class IrcPartEventArgs : IrcEventArgsBase
+public sealed class IrcPartEventArgs : IrcEventArgsBase
 {
     /// <summary>
     /// The channel that was left.
@@ -147,7 +147,7 @@ internal sealed class IrcPartEventArgs : IrcEventArgsBase
 /// <summary>
 /// Event arguments for ERROR messages from the server.
 /// </summary>
-internal sealed class IrcErrorEventArgs : IrcEventArgsBase
+public sealed class IrcErrorEventArgs : IrcEventArgsBase
 {
     /// <summary>
     /// The error message from the server.

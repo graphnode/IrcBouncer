@@ -4,7 +4,7 @@
 /// Abstraction over network connection for testability.
 /// Provides event-driven networking with async operations.
 /// </summary>
-internal interface IConnection : IDisposable
+public interface IConnection : IDisposable
 {
     /// <summary>
     /// Fired when the connection is successfully established.

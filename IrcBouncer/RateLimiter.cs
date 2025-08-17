@@ -3,7 +3,7 @@
 /// <summary>
 /// Configuration options for IRC rate limiting.
 /// </summary>
-internal sealed class RateLimitOptions
+public sealed class RateLimitOptions
 {
     /// <summary>
     /// Maximum number of messages per time window. Default: 5.

@@ -24,7 +24,7 @@
 19. [x] EventTcpClient: Distinguish between normal closure (remote disconnect) and errors; surface via Error event only when appropriate.
 20. [x] EventTcpClient: Add TCP keep-alive and configurable timeouts (connect/read/write) via options.
 
-21. [ ] TLS: Use default certificate validation and expose an optional callback to customize/relax rules (document risks). Ensure SNI uses the target host.
+21. [x] TLS: Use default certificate validation and expose an optional callback to customize/relax rules (document risks). Ensure SNI uses the target host.
 22. [x] TLS: Default to TLS unless explicitly disabled; ensure the CLI flag is correctly applied to the connection path.
 
 23. [x] Program: Fix PASS command typo — send "PASS {pass}" instead of "$PASS {pass}".
@@ -35,7 +35,7 @@
 
 28. [x] IRC domain: Implement a minimal IRC message parser/formatter (prefix, command, params, trailing) instead of ad-hoc string operations.
 29. [x] IRC domain: Add handlers/events for common messages (PING/PONG, NOTICE, PRIVMSG, JOIN/PART, ERROR) in the protocol layer.
-30. [ ] IRC domain: Implement basic rate limiting for outgoing messages to avoid server flood-kick (configurable).
+30. [x] IRC domain: Implement basic rate limiting for outgoing messages to avoid server flood-kick (configurable).
 
 31. [ ] Testing: Add unit tests for command formatting (PASS/NICK/USER), slash-command mapping, and PING/PONG behavior.
 32. [ ] Testing: Add integration tests with a loopback TCP server that simulates IRC server responses (non-TLS path for speed).

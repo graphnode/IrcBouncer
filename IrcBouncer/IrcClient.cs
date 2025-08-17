@@ -4,7 +4,7 @@
 /// IRC client that handles protocol logic while using an abstract connection for transport.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-internal sealed class IrcClient : IDisposable
+public sealed class IrcClient : IDisposable
 {
     private readonly IConnection _connection;
     private readonly RateLimiter _rateLimiter;

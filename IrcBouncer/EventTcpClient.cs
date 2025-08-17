@@ -2,6 +2,7 @@
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace IrcBouncer;
@@ -9,7 +10,7 @@ namespace IrcBouncer;
 /// <summary>
 /// Configuration options for EventTcpClient connection behavior.
 /// </summary>
-internal sealed class TcpConnectionOptions
+public sealed class TcpConnectionOptions
 {
     /// <summary>
     /// Connection timeout in milliseconds. Default: 30000 (30 seconds).
@@ -40,11 +41,23 @@ internal sealed class TcpConnectionOptions
     /// TCP keep-alive interval in milliseconds (interval between keep-alive probes). Default: 1000 (1 second).
     /// </summary>
     public int KeepAliveIntervalMs { get; set; } = 1000;
+
+    /// <summary>
+    /// Optional callback to customize SSL/TLS certificate validation. 
+    /// By default, uses the standard .NET certificate validation which ensures security.
+    /// 
+    /// WARNING: Customizing certificate validation can introduce security vulnerabilities.
+    /// Only use this for specific deployment scenarios (e.g., self-signed certificates in controlled environments).
+    /// Never disable certificate validation in production environments without understanding the security implications.
+    /// 
+    /// If null (default), standard certificate validation is used.
+    /// </summary>
+    public RemoteCertificateValidationCallback? CertificateValidationCallback { get; set; }
 }
 
 [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
 [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-internal sealed class EventTcpClient : IConnection
+public sealed class EventTcpClient : IConnection
 {
     /// <summary>
     /// Fired when the connection is successfully established and ready for communication.
@@ -153,7 +166,7 @@ internal sealed class EventTcpClient : IConnection
             if (useTls)
             {
 #pragma warning disable CA2000
-                var ssl = new SslStream(netStream, leaveInnerStreamOpen: false);
+                var ssl = new SslStream(netStream, leaveInnerStreamOpen: false, _options.CertificateValidationCallback);
 #pragma warning restore CA2000
                 try
                 {

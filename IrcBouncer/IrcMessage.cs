@@ -4,7 +4,7 @@
 /// Represents a structured IRC message with prefix, command, parameters, and trailing text.
 /// Follows RFC 2812 message format: [:prefix] command [params] [:trailing]
 /// </summary>
-internal sealed class IrcMessage
+public sealed class IrcMessage
 {
     /// <summary>
     /// Optional prefix (typically server name or nick!user@host).
