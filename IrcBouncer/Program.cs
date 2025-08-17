@@ -1,7 +1,11 @@
 ﻿using System.CommandLine;
+using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 
 namespace IrcBouncer;
 
+[SuppressMessage("ReSharper", "AccessToDisposedClosure")]
+[SuppressMessage("Design", "CA1031:Do not catch general exception types")]
 internal static class Program
 {
     public static async Task<int> Main(string[] args)
@@ -64,7 +68,7 @@ internal static class Program
             
             if (tls && notls)
             {
-                await Console.Error.WriteLineAsync("Options --tls and --notls are mutually exclusive.");
+                await Console.Error.WriteLineAsync("Options --tls and --notls are mutually exclusive.").ConfigureAwait(false);
                 Environment.ExitCode = 2;
                 return;
             }
@@ -78,12 +82,13 @@ internal static class Program
             
             var finalServer = string.IsNullOrWhiteSpace(server) ? "irc.libera.chat" : server;
             var finalPort = port is > 0 ? port.Value : 6697;
-            var finalNick = string.IsNullOrWhiteSpace(nick) ? ("IrcBouncer" + Random.Shared.Next(1000, 9999)) : nick;
-            var finalUser = string.IsNullOrWhiteSpace(user) ? "ircuser" : user;
+            
+            var finalNick = string.IsNullOrWhiteSpace(nick) ? ("IrcBouncer" + RandomNumberGenerator.GetInt32(1000, 9999)) : nick;
+            var finalUser = string.IsNullOrWhiteSpace(user) ? "iruser" : user;
             var finalReal = string.IsNullOrWhiteSpace(real) ? "Irc Bouncer" : real;
 
             var useTls = tls || (!tls && !notls); // default to true unless --notls is specified
-            var code = await RunAsync(finalServer, finalPort, useTls, finalNick, finalUser, finalReal, pass, cancellationToken);
+            var code = await RunAsync(finalServer, finalPort, useTls, finalNick, finalUser, finalReal, pass, cancellationToken).ConfigureAwait(false);
             Environment.ExitCode = code;
         });
         
@@ -91,30 +96,30 @@ internal static class Program
         
         foreach (var parseError in parseResult.Errors)
         {
-            await Console.Error.WriteLineAsync(parseError.Message);
+            await Console.Error.WriteLineAsync(parseError.Message).ConfigureAwait(false);
             return 1;
         }
 
-        return await parseResult.InvokeAsync();
+        return await parseResult.InvokeAsync().ConfigureAwait(false);
     }
 
     private static async Task<int> RunAsync(string server, int port, bool useTls, string nick, string user, string real, string? pass, CancellationToken cancellationToken)
     {
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
         Console.WriteLine($"Connecting to {server}:{port} (TLS={useTls}) as {nick} ... Press Ctrl+C to quit.");
 
-        var client = new EventTcpClient();
+        using var client = new EventTcpClient();
 
         client.Connected += async (_, _) =>
         {
             if (!string.IsNullOrEmpty(pass))
             {
-                await client.Write($"PASS {pass}");
+                await client.Write($"PASS {pass}").ConfigureAwait(false);
             }
-            await client.Write($"NICK {nick}");
-            await client.Write($"USER {user} 0 * :{real}");
+            await client.Write($"NICK {nick}").ConfigureAwait(false);
+            await client.Write($"USER {user} 0 * :{real}").ConfigureAwait(false);
         };
 
         client.Data += async (_, message) =>
@@ -124,7 +129,7 @@ internal static class Program
             if (message.StartsWith("PING ", StringComparison.OrdinalIgnoreCase))
             {
                 var payload = message[5..];
-                await client.Write($"PONG {payload}");
+                await client.Write($"PONG {payload}").ConfigureAwait(false);
             }
         };
 
@@ -145,16 +150,17 @@ internal static class Program
                 while (!cts.IsCancellationRequested)
                 {
                     var input = Console.ReadLine();
-                    if (input == null) break;
-                    
+                    if (input == null)
+                        break;
+
                     var original = input;
                     var isCommand = original.StartsWith('/');
-                    string toSend = original;
+                    var toSend = original;
                     string? commandUpper = null;
                     if (isCommand)
                     {
                         var cmdLine = original[1..];
-                        var spaceIndex = cmdLine.IndexOf(' ');
+                        var spaceIndex = cmdLine.IndexOf(' ', StringComparison.Ordinal);
                         if (spaceIndex > 0)
                         {
                             commandUpper = cmdLine[..spaceIndex].ToUpperInvariant();
@@ -200,7 +206,7 @@ internal static class Program
             }
         }, cts.Token);
 
-        await Task.WhenAny(writeTask, client.ConnectAsync(server, port, useTls, cts.Token));
+        await Task.WhenAny(writeTask, client.ConnectAsync(server, port, useTls, cts.Token)).ConfigureAwait(false);
         
         return 0;
     }
