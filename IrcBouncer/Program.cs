@@ -147,41 +147,45 @@ internal static class Program
                     var input = Console.ReadLine();
                     if (input == null) break;
                     
-                    var isCommand = input.StartsWith('/');
+                    var original = input;
+                    var isCommand = original.StartsWith('/');
+                    string toSend = original;
+                    string? commandUpper = null;
                     if (isCommand)
                     {
-                        input = input[1..];
-                        var spaceIndex = input.IndexOf(' ');
+                        var cmdLine = original[1..];
+                        var spaceIndex = cmdLine.IndexOf(' ');
                         if (spaceIndex > 0)
                         {
-                            var command = input[..spaceIndex].ToUpperInvariant();
-                            command = command switch
+                            commandUpper = cmdLine[..spaceIndex].ToUpperInvariant();
+                            commandUpper = commandUpper switch
                             {
                                 "LEAVE" => "PART",
                                 "EXIT" => "QUIT",
-                                _ => command
+                                _ => commandUpper
                             };
-                            input = command + input[spaceIndex..];
+                            toSend = commandUpper + cmdLine[spaceIndex..];
                         }
                         else
-                            input = input.ToUpperInvariant();
+                        {
+                            commandUpper = cmdLine.ToUpperInvariant() switch
+                            {
+                                "LEAVE" => "PART",
+                                "EXIT" => "QUIT",
+                                var c => c
+                            };
+                            toSend = commandUpper;
+                        }
                     }
 
-                    Console.Out.WriteLine($"> {input}");
+                    Console.Out.WriteLine($"> {toSend}");
                     
-                    _ = client.Write(input);
+                    _ = client.Write(toSend);
                     
-                    if (isCommand)
+                    if (isCommand && commandUpper == "QUIT")
                     {
-                        input = input[1..];
-                        var spaceIndex = input.IndexOf(' ');
-                        if (spaceIndex > 0)
-                            switch (input[..spaceIndex])
-                            {
-                                case "QUIT":
-                                    client.Disconnect();
-                                    return;
-                            }
+                        client.Disconnect();
+                        return;
                     }
                 }
             }

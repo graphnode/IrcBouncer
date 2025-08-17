@@ -30,7 +30,11 @@ public class EventTcpClient(TcpClient client) : IDisposable
             var ssl = new SslStream(netStream, leaveInnerStreamOpen: false);
             try
             {
-                await ssl.AuthenticateAsClientAsync(host);
+                var options = new SslClientAuthenticationOptions
+                {
+                    TargetHost = host,
+                };
+                await ssl.AuthenticateAsClientAsync(options, cts.Token);
             }
             catch (Exception ex)
             {
