@@ -46,6 +46,14 @@ internal interface IConnection : IDisposable
     Task Write(string line);
 
     /// <summary>
+    /// Writes a line of data to the remote endpoint with cancellation support.
+    /// </summary>
+    /// <param name="line">The line to write.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>A task representing the write operation.</returns>
+    Task Write(string line, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Explicitly disconnects from the remote endpoint.
     /// </summary>
     void Disconnect();

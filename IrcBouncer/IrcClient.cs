@@ -7,6 +7,7 @@
 internal sealed class IrcClient : IDisposable
 {
     private readonly IConnection _connection;
+    private readonly RateLimiter _rateLimiter;
     private bool _disposed;
 
     /// <summary>
@@ -15,9 +16,34 @@ internal sealed class IrcClient : IDisposable
     public event EventHandler? Connected;
 
     /// <summary>
-    /// Fired when a message is received from the IRC server (after PING/PONG handling).
+    /// Fired when a raw message is received from the IRC server (after PING/PONG handling).
     /// </summary>
     public event EventHandler<string>? MessageReceived;
+
+    /// <summary>
+    /// Fired when a PRIVMSG is received from the IRC server.
+    /// </summary>
+    public event EventHandler<IrcPrivmsgEventArgs>? PrivmsgReceived;
+
+    /// <summary>
+    /// Fired when a NOTICE is received from the IRC server.
+    /// </summary>
+    public event EventHandler<IrcNoticeEventArgs>? NoticeReceived;
+
+    /// <summary>
+    /// Fired when someone joins a channel.
+    /// </summary>
+    public event EventHandler<IrcJoinEventArgs>? UserJoined;
+
+    /// <summary>
+    /// Fired when someone parts a channel.
+    /// </summary>
+    public event EventHandler<IrcPartEventArgs>? UserParted;
+
+    /// <summary>
+    /// Fired when an IRC ERROR message is received from the server.
+    /// </summary>
+    public event EventHandler<IrcErrorEventArgs>? IrcError;
 
     /// <summary>
     /// Fired when an error occurs in the connection or IRC protocol handling.
@@ -29,9 +55,12 @@ internal sealed class IrcClient : IDisposable
     /// </summary>
     public event EventHandler? Disconnected;
 
-    public IrcClient(IConnection connection)
+    public IrcClient(IConnection connection) : this(connection, new RateLimitOptions()) { }
+
+    public IrcClient(IConnection connection, RateLimitOptions rateLimitOptions)
     {
         _connection = connection ?? throw new ArgumentNullException(nameof(connection));
+        _rateLimiter = new RateLimiter(rateLimitOptions ?? throw new ArgumentNullException(nameof(rateLimitOptions)));
         
         _connection.Connected += OnConnectionConnected;
         _connection.Data += OnConnectionData;
@@ -62,13 +91,18 @@ internal sealed class IrcClient : IDisposable
     }
 
     /// <summary>
-    /// Sends a raw IRC command to the server.
+    /// Sends a raw IRC command to the server with rate limiting applied.
     /// </summary>
-    public async Task SendAsync(string command)
+    /// <param name="command">The IRC command to send.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    public async Task SendAsync(string command, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _connection.Write(command).ConfigureAwait(false);
+            // Apply rate limiting before sending
+            await _rateLimiter.WaitAsync(cancellationToken).ConfigureAwait(false);
+            
+            await _connection.Write(command, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -118,20 +152,47 @@ internal sealed class IrcClient : IDisposable
         }
     }
 
-    private async void OnConnectionData(object? sender, string message)
+    private async void OnConnectionData(object? sender, string rawMessage)
     {
         try
         {
+            // Parse the IRC message using structured parser
+            var ircMessage = IrcMessage.Parse(rawMessage);
+            
             // Handle PING/PONG automatically
-            if (message.StartsWith("PING ", StringComparison.OrdinalIgnoreCase))
+            if (ircMessage.Command == "PING")
             {
-                var payload = message[5..];
-                await _connection.Write($"PONG {payload}").ConfigureAwait(false);
+                var pongMessage = IrcMessage.Create("PONG", ircMessage.Trailing);
+                await _connection.Write(pongMessage.Format()).ConfigureAwait(false);
                 return;
             }
             
-            // Forward other messages to consumers
-            MessageReceived?.Invoke(this, message);
+            // Emit structured events based on message type
+            switch (ircMessage.Command)
+            {
+                case "PRIVMSG":
+                    PrivmsgReceived?.Invoke(this, new IrcPrivmsgEventArgs(rawMessage, ircMessage));
+                    break;
+                    
+                case "NOTICE":
+                    NoticeReceived?.Invoke(this, new IrcNoticeEventArgs(rawMessage, ircMessage));
+                    break;
+                    
+                case "JOIN":
+                    UserJoined?.Invoke(this, new IrcJoinEventArgs(rawMessage, ircMessage));
+                    break;
+                    
+                case "PART":
+                    UserParted?.Invoke(this, new IrcPartEventArgs(rawMessage, ircMessage));
+                    break;
+                    
+                case "ERROR":
+                    IrcError?.Invoke(this, new IrcErrorEventArgs(rawMessage, ircMessage));
+                    break;
+            }
+            
+            // Always emit the raw message event for backward compatibility and other message types
+            MessageReceived?.Invoke(this, rawMessage);
         }
         catch (Exception ex)
         {
