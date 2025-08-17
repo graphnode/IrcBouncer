@@ -13,22 +13,22 @@
 9. [ ] Introduce an abstraction over networking (e.g., IConnection or wrapper over TcpClient/Stream) for testability.
 10. [ ] Separate IRC protocol logic from transport: create an IrcClient that uses a transport abstraction instead of mixing concerns.
 
-11. [ ] EventTcpClient: Fix double-connect bug — use the injected TcpClient consistently; do not create a second TcpClient.
-12. [ ] EventTcpClient: Ensure _reader/_writer streams are derived from the same TcpClient managed by the instance and disposed correctly.
+11. [x] EventTcpClient: Fix double-connect bug — use the injected TcpClient consistently; do not create a second TcpClient.
+12. [x] EventTcpClient: Ensure _reader/_writer streams are derived from the same TcpClient managed by the instance and disposed correctly.
 13. [ ] EventTcpClient: Respect the useTls parameter and use SslClientAuthenticationOptions with SNI and a CancellationToken-aware AuthenticateAsClientAsync overload.
 14. [ ] EventTcpClient: Improve cancellation flow — link tokens, dispose CTS, and ensure background read task stops on cancel without leaking.
 15. [ ] EventTcpClient: Define and document event semantics (when Connected/Disconnected fire). Raise Disconnected when the read loop ends or on explicit Disconnect, exactly once.
 16. [ ] EventTcpClient: Make Write an async method (WriteAsync) that accepts a CancellationToken and no-ops/fails fast after disconnect.
 17. [ ] EventTcpClient: Serialize concurrent writes (SemaphoreSlim or dedicated writer queue) to avoid interleaving and ObjectDisposed exceptions.
-18. [ ] EventTcpClient: Align StreamReader/StreamWriter leaveOpen semantics to avoid prematurely disposing the underlying stream.
+18. [x] EventTcpClient: Align StreamReader/StreamWriter leaveOpen semantics to avoid prematurely disposing the underlying stream.
 19. [ ] EventTcpClient: Distinguish between normal closure (remote disconnect) and errors; surface via Error event only when appropriate.
 20. [ ] EventTcpClient: Add TCP keep-alive and configurable timeouts (connect/read/write) via options.
 
 21. [ ] TLS: Use default certificate validation and expose an optional callback to customize/relax rules (document risks). Ensure SNI uses the target host.
 22. [ ] TLS: Default to TLS unless explicitly disabled; ensure the CLI flag is correctly applied to the connection path.
 
-23. [ ] Program: Fix PASS command typo — send "PASS {pass}" instead of "$PASS {pass}".
-24. [ ] Program: Respect --tls/--notls by passing the parsed useTls value to ConnectAsync (remove hardcoded true).
+23. [x] Program: Fix PASS command typo — send "PASS {pass}" instead of "$PASS {pass}".
+24. [x] Program: Respect --tls/--notls by passing the parsed useTls value to ConnectAsync (remove hardcoded true).
 25. [ ] Program: Correct slash-command parsing to avoid removing the leading slash twice and handle commands robustly (QUIT, PART, JOIN, etc.).
 26. [ ] Program: Add graceful shutdown on Ctrl+C — await disconnect, flush pending writes, and ensure Disconnected is observed.
 27. [ ] Program: Allow configuration via environment variables or a config file for server, port, nick, user, real, and TLS.

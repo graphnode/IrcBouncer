@@ -111,7 +111,7 @@ internal static class Program
         {
             if (!string.IsNullOrEmpty(pass))
             {
-                await client.Write($"$PASS {pass}");
+                await client.Write($"PASS {pass}");
             }
             await client.Write($"NICK {nick}");
             await client.Write($"USER {user} 0 * :{real}");
@@ -196,7 +196,7 @@ internal static class Program
             }
         }, cts.Token);
 
-        await Task.WhenAny(writeTask, client.ConnectAsync(server, port, true, cts.Token));
+        await Task.WhenAny(writeTask, client.ConnectAsync(server, port, useTls, cts.Token));
         
         return 0;
     }

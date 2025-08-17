@@ -23,20 +23,8 @@ public class EventTcpClient(TcpClient client) : IDisposable
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken ?? CancellationToken.None);
         
         await client.ConnectAsync(host, port, cts.Token);
-        
-        using var tcp = new TcpClient();
-        try
-        {
-            await tcp.ConnectAsync(host, port, cts.Token);
-        }
-        catch (Exception ex)
-        {
-            if (ex is not OperationCanceledException)
-                Error?.Invoke(this, ex);
-            return;
-        }
 
-        Stream netStream = tcp.GetStream();
+        Stream netStream = client.GetStream();
         if (useTls)
         {
             var ssl = new SslStream(netStream, leaveInnerStreamOpen: false);
@@ -54,7 +42,7 @@ public class EventTcpClient(TcpClient client) : IDisposable
         }
 
         _reader = new StreamReader(netStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 8192, leaveOpen: true);
-        _writer = new StreamWriter(netStream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        _writer = new StreamWriter(netStream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), 8192, leaveOpen: true);
         _writer.NewLine = "\r\n";
         _writer.AutoFlush = true;
         
@@ -85,8 +73,6 @@ public class EventTcpClient(TcpClient client) : IDisposable
         
         await readTask;
         
-        try { tcp.Close(); }
-        catch { /* ignored */ }
     }
 
     public async Task Write(string line)
