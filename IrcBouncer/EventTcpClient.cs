@@ -7,11 +7,11 @@ namespace IrcBouncer;
 
 [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
 [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-internal class EventTcpClient : IDisposable
+internal sealed class EventTcpClient : IConnection
 {
     public event EventHandler? Connected;
     public event EventHandler<string>? Data;
-    public event EventHandler<Exception>? Error;
+    public event EventHandler<Exception>? ConnectionError;
     public event EventHandler? Disconnected;
     
     private StreamWriter? _writer;
@@ -41,7 +41,7 @@ internal class EventTcpClient : IDisposable
             catch (Exception ex)
             {
                 if (ex is not OperationCanceledException)
-                    Error?.Invoke(this, ex);
+                    ConnectionError?.Invoke(this, ex);
                 return;
             }
             netStream = ssl;
@@ -67,7 +67,7 @@ internal class EventTcpClient : IDisposable
             catch (Exception ex)
             {
                 if (ex is not OperationCanceledException)
-                    Error?.Invoke(this, ex);
+                    ConnectionError?.Invoke(this, ex);
             }
             finally
             {

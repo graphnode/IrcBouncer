@@ -1,16 +1,16 @@
 ﻿# Improvement Tasks Checklist
 
 1. [x] Add a .gitignore to exclude bin/, obj/, .idea/.vs, and other generated artifacts from source control.
-2. [ ] Remove committed bin/ and obj/ directories from the repository history and working tree.
+2. [x] Remove committed bin/ and obj/ directories from the repository history and working tree.
 3. [x] Add a LICENSE file to clarify usage and distribution terms.
 4. [x] Create/expand README with project purpose, build instructions, usage examples, and TLS notes.
 5. [x] Add an .editorconfig and adopt consistent code style (naming, formatting, newline, UTF-8 without BOM).
 
 6. [x] Enable Nullable Reference Types (Nullable=enable) in the project and fix resulting nullability issues.
 7. [x] Turn on .NET analyzers (AnalysisMode=AllEnabledByDefault) and treat warnings as errors in CI.
-8. [ ] Address/waive analyzer warnings to keep the codebase warning-free.
+8. [x] Address/waive analyzer warnings to keep the codebase warning-free.
 
-9. [ ] Introduce an abstraction over networking (e.g., IConnection or wrapper over TcpClient/Stream) for testability.
+9. [x] Introduce an abstraction over networking (e.g., IConnection or wrapper over TcpClient/Stream) for testability.
 10. [ ] Separate IRC protocol logic from transport: create an IrcClient that uses a transport abstraction instead of mixing concerns.
 
 11. [x] EventTcpClient: Fix double-connect bug — use the injected TcpClient consistently; do not create a second TcpClient.

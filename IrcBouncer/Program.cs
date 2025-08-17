@@ -103,6 +103,7 @@ internal static class Program
         return await parseResult.InvokeAsync().ConfigureAwait(false);
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
     private static async Task<int> RunAsync(string server, int port, bool useTls, string nick, string user, string real, string? pass, CancellationToken cancellationToken)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -110,35 +111,25 @@ internal static class Program
 
         Console.WriteLine($"Connecting to {server}:{port} (TLS={useTls}) as {nick} ... Press Ctrl+C to quit.");
 
-        using var client = new EventTcpClient();
+        using var connection = new EventTcpClient();
+        using var ircClient = new IrcClient(connection);
 
-        client.Connected += async (_, _) =>
+        ircClient.Connected += (_, _) =>
         {
-            if (!string.IsNullOrEmpty(pass))
-            {
-                await client.Write($"PASS {pass}").ConfigureAwait(false);
-            }
-            await client.Write($"NICK {nick}").ConfigureAwait(false);
-            await client.Write($"USER {user} 0 * :{real}").ConfigureAwait(false);
+            Console.WriteLine("Connected and authenticated to IRC server.");
         };
 
-        client.Data += async (_, message) =>
+        ircClient.MessageReceived += (_, message) =>
         {
             Console.WriteLine($"< {message}");
-                    
-            if (message.StartsWith("PING ", StringComparison.OrdinalIgnoreCase))
-            {
-                var payload = message[5..];
-                await client.Write($"PONG {payload}").ConfigureAwait(false);
-            }
         };
 
-        client.Error += (_, ex) =>
+        ircClient.Error += (_, ex) =>
         {
             Console.Error.WriteLine($"Error: {ex.Message}");
         };
 
-        client.Disconnected += (_, _) =>
+        ircClient.Disconnected += (_, _) =>
         {
             Console.WriteLine("Disconnected.");
         };
@@ -186,11 +177,11 @@ internal static class Program
 
                     Console.Out.WriteLine($"> {toSend}");
                     
-                    _ = client.Write(toSend);
+                    _ = ircClient.SendAsync(toSend);
                     
                     if (isCommand && commandUpper == "QUIT")
                     {
-                        client.Disconnect();
+                        ircClient.Disconnect();
                         return;
                     }
                 }
@@ -206,7 +197,7 @@ internal static class Program
             }
         }, cts.Token);
 
-        await Task.WhenAny(writeTask, client.ConnectAsync(server, port, useTls, cts.Token)).ConfigureAwait(false);
+        await Task.WhenAny(writeTask, ircClient.ConnectAsync(server, port, useTls, nick, user, real, pass, cts.Token)).ConfigureAwait(false);
         
         return 0;
     }
