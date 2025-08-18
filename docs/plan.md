@@ -197,3 +197,80 @@ The IrcBouncer project is now production-ready with all planned improvements imp
 
 ## Traceability to docs/tasks.md
 All 45 numbered items in docs/tasks.md have been completed and are reflected in this updated plan. The project has successfully delivered on all proposed improvements across networking, CLI, protocol, testing, logging, performance, CI/CD, repository hygiene, and documentation themes.
+
+
+## Phase 2: Server-Side Bouncer Plan — Multi-Client to Single Upstream
+
+Goal: Implement a local IRC bouncer server that accepts multiple downstream client connections and proxies them to a single upstream IRC server connection managed by this process. No code in this phase; this document defines the approach, deliverables, and acceptance criteria.
+
+Scope (Phase 2, Iteration 1)
+- Downstream: TCP listener on configurable bind address/port; optional TLS for downstream clients using a provided server certificate.
+- Upstream: Exactly one upstream IRC connection (via existing EventTcpClient) per running process (future: per-identity). TLS enabled by default unless explicitly disabled.
+- Routing: Bi-directional message routing with line-based IRC framing (CRLF), minimal transformations; PING/PONG automation preserved.
+- Sessions: Multiple concurrent downstream sessions map to the same upstream link. Each session can register locally (NICK/USER/PASS) and attach to the shared upstream state.
+- Authentication: Simple shared secret for downstream access (configurable). No multi-user persistence in Iteration 1.
+- Observability: Structured logging and per-session correlation IDs. Basic counters for connected sessions and messages relayed.
+- Graceful shutdown: Stop accepting, drain, disconnect upstream, and close sessions in order.
+
+High-Level Architecture
+- BouncerServer (host):
+  - Accepts TcpClient connections (SslStream if TLS enabled).
+  - Creates a ClientSession per downstream connection.
+- UpstreamConnectionManager:
+  - Owns a single EventTcpClient instance and manages its lifecycle and reconnects (optional backoff).
+- Router:
+  - Fan-out upstream messages to all sessions; fan-in session messages to upstream.
+  - Applies simple policy: drop writes when disconnected; serialize upstream writes.
+- Auth & SessionRegistry:
+  - Tracks active sessions, enforces auth, and session limits.
+
+Key Design Decisions
+- Single upstream link shared by all downstream sessions in the process (behavior similar to classic IRC bouncers re-attaching to one presence).
+- Do not buffer channel history or implement playback in Iteration 1; focus on live proxying only.
+- Minimize protocol transformations; preserve raw lines for transparency.
+
+Milestones and Deliverables
+1) Foundations and Interfaces
+- Define abstractions: IDownstreamSession, IUpstreamConnection (wrapper over EventTcpClient), IRouter. [Not started]
+- Add configuration model: bind address, port, downstream TLS cert path/password, upstream host/port/TLS flag, downstream shared secret. [Not started]
+
+2) Listener and Session Lifecycle
+- Implement BouncerServer scaffolding: start/stop, accept loop, cancellation, and semaphore for max connections. [Not started]
+- Implement ClientSession scaffolding: read/write loops with cancellation, CRLF framing, and safe disposal; no real networking in tests. [Not started]
+
+3) Upstream Connection Manager
+- Wrap EventTcpClient with UpstreamConnectionManager for connect/disconnect, single Disconnected event, and optional backoff. [Not started]
+- Ensure TLS defaults (enabled unless --notls) and SNI on upstream. [Not started]
+
+4) Routing and Semantics
+- Implement Router with upstream fan-out to sessions and session fan-in to upstream; ensure write serialization and backpressure handling. [Not started]
+- Preserve PING/PONG automation; avoid duplicating auto-PONG across sessions. [Not started]
+
+5) Authentication and Security
+- Require downstream PASS before allowing message relay; configurable shared secret. [Not started]
+- Add rate limits and per-session message quotas to prevent abuse. [Not started]
+
+6) CLI and Configuration UX
+- Add a new `serve` command: `dotnet run -- serve --bind 127.0.0.1 --port 6668 --downstream-tls --cert path.pfx --cert-pass secret --server irc.example.com --port 6697 --notls? --secret xyz`. [Not started]
+- Support environment variables and config file mirroring existing client options. [Not started]
+
+7) Observability and Shutdown
+- Structured logs with per-session IDs; metrics for sessions/messages/errors. [Not started]
+- Graceful shutdown: stop accepting, notify sessions, disconnect upstream, wait for tasks to complete. [Not started]
+
+Testing Strategy (no real network operations in unit tests)
+- Unit tests with in-memory stream pairs or fakes to validate framing, routing, and cancellation. [Not started]
+- Integration tests with loopback TCP for downstream and a fake upstream (or EventTcpClient mocked). [Not started]
+- Concurrency tests: multiple sessions writing concurrently; verify serialization and no data corruption. [Not started]
+- Lifecycle tests: verify events ordering and single Disconnected firing across components. [Not started]
+
+Acceptance Criteria for Iteration 1
+- Multiple downstream clients can connect concurrently and exchange messages through a single upstream connection without interleaving or deadlocks.
+- TLS default behavior upheld: upstream TLS on by default; downstream TLS optional but supported with a certificate.
+- Clean shutdown with no hangs and exactly-once disconnect events; no ObjectDisposed exceptions during stop.
+- Tests cover core routing, cancellation, and basic auth paths; CI green.
+
+Risks and Non-Goals
+- Not implementing message history/buffer or per-user multi-identity in Iteration 1.
+- TLS certificate management UX is minimal (user-provided PFX only).
+- Reconnection policy is conservative; no automatic rejoin logic in this iteration.

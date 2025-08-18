@@ -57,3 +57,29 @@
 
 44. [x] Documentation: Document connection lifecycle, TLS behavior, and error/exit semantics.
 45. [x] Documentation: Add CONTRIBUTING.md and CODE_OF_CONDUCT.md to support external contributions.
+
+
+## Phase 2 — Server-Side Bouncer Tasks (Multi-Client → Single Upstream)
+
+Legend: [ ] = Not started, [*] = In progress, [x] = Done
+
+46. [x] Architecture scaffolding: define server-side abstractions (IDownstreamSession, IUpstreamConnection, IRouter), and a lightweight SessionRegistry.
+47. [x] Configuration model: bind address/port, downstream TLS enable flag, server certificate path/password, upstream host/port, upstream TLS flag (default on), shared secret for downstream auth, limits (max sessions, rate).
+48. [x] Downstream listener: implement BouncerServer accept loop with CancellationToken, connection limit semaphore, and optional TLS using SslStream over TcpClient.
+49. [ ] ClientSession scaffolding: per-connection read/write loops with UTF-8 + CRLF framing, safe disposal, and cancellation-aware shutdown.
+50. [ ] UpstreamConnectionManager: wrap EventTcpClient to expose connect/disconnect, state, and events; ensure TLS defaults, SNI, and optional reconnect backoff.
+51. [ ] Router: implement fan-in (sessions → upstream) with serialized writes and fan-out (upstream → all sessions) with backpressure handling.
+52. [ ] Authentication: require PASS from downstream clients before relaying; validate against configured shared secret; handle error and disconnect flows.
+53. [ ] Rate limiting and quotas: per-session basic message rate and optional burst limits to prevent abuse.
+54. [x] CLI: add `serve` command and options for downstream bind/TLS/cert and upstream host/port/TLS/secret; integrate with System.CommandLine.
+55. [ ] Graceful shutdown: stop accepting, notify sessions, drain queues, disconnect upstream, await tasks; ensure exactly-once Disconnected semantics.
+56. [ ] Logging: structured logs with per-session correlation IDs; redact sensitive data (PASS); integrate with existing logging approach.
+57. [ ] Metrics: counters for connected sessions, messages relayed, auth failures, upstream reconnects.
+58. [ ] Unit tests: routing correctness (fan-in/fan-out), framing, auth gate behavior using in-memory streams/fakes.
+59. [ ] Concurrency tests: multiple sessions writing concurrently; verify serialization and absence of interleaving or ObjectDisposed exceptions.
+60. [ ] Integration tests: loopback downstream server and fake upstream (or mocked EventTcpClient) to validate lifecycle and shutdown.
+61. [ ] CLI tests: parse/validation for `serve` options and defaults; help text checks.
+62. [ ] Documentation: update README usage with `serve` examples; expand docs/ARCHITECTURE.md with server components and sequence diagrams.
+63. [ ] Packaging: instructions for running the bouncer as a background process/service; publish profiles and configuration examples.
+64. [ ] Security review: document TLS defaults, downstream TLS guidance, secret handling, and known limitations.
+65. [ ] Acceptance: verify criteria in docs/plan.md (Phase 2) are met; ensure CI green on new tests.

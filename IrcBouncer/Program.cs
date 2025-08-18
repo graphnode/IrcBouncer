@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+using IrcBouncer.Server;
 
 namespace IrcBouncer;
 
@@ -57,6 +58,106 @@ internal static class Program
             Arity = ArgumentArity.ExactlyOne
         };
 
+
+        // Server-side bouncer command (Phase 2 scaffolding)
+        var bindAddressOption = new Option<string?>("--bind-address") { Description = "Downstream bind address (default 127.0.0.1)", Arity = ArgumentArity.ExactlyOne };
+        var bindPortOption = new Option<int?>("--bind-port") { Description = "Downstream bind port (default 6667)", Arity = ArgumentArity.ExactlyOne };
+        var downstreamTlsOption = new Option<bool>("--downstream-tls") { Description = "Enable TLS for downstream clients (requires cert)" };
+        var certPathOption = new Option<string?>("--cert-path") { Description = "Path to server certificate (when downstream TLS is enabled)", Arity = ArgumentArity.ExactlyOne };
+        var certPasswordOption = new Option<string?>("--cert-password") { Description = "Password for server certificate (optional)", Arity = ArgumentArity.ExactlyOne };
+
+        var upstreamHostOption = new Option<string?>("--upstream-host") { Description = "Upstream IRC host (default irc.libera.chat)", Arity = ArgumentArity.ExactlyOne };
+        var upstreamPortOption = new Option<int?>("--upstream-port") { Description = "Upstream IRC port (default 6697)", Arity = ArgumentArity.ExactlyOne };
+        var upstreamTlsOption = new Option<bool>("--upstream-tls") { Description = "Use TLS to connect upstream (default)" };
+        var upstreamNoTlsOption = new Option<bool>("--upstream-notls") { Description = "Do not use TLS to connect upstream" };
+
+        var sharedSecretOption = new Option<string?>("--secret") { Description = "Shared secret required from downstream clients via PASS", Arity = ArgumentArity.ExactlyOne };
+        var maxSessionsOption = new Option<int?>("--max-sessions") { Description = "Maximum concurrent downstream sessions (default 100)", Arity = ArgumentArity.ExactlyOne };
+        var sessionRateOption = new Option<int?>("--session-rate") { Description = "Per-session message rate limit (msgs/sec, default disabled)", Arity = ArgumentArity.ExactlyOne };
+        var serveLogLevelOption = new Option<LogLevel?>("--log-level") { Description = "Log level for server mode", Arity = ArgumentArity.ExactlyOne };
+
+        var serve = new Command("serve", "Run the IRC bouncer server (scaffolding)")
+        {
+            bindAddressOption,
+            bindPortOption,
+            downstreamTlsOption,
+            certPathOption,
+            certPasswordOption,
+            upstreamHostOption,
+            upstreamPortOption,
+            upstreamTlsOption,
+            upstreamNoTlsOption,
+            sharedSecretOption,
+            maxSessionsOption,
+            sessionRateOption,
+            serveLogLevelOption
+        };
+
+        serve.SetAction(async (result, cancellationToken) =>
+        {
+            var options = new BouncerOptions();
+
+            var bindAddress = result.GetValue(bindAddressOption);
+            var bindPort = result.GetValue(bindPortOption);
+            var downstreamTls = result.GetValue(downstreamTlsOption);
+            var certPath = result.GetValue(certPathOption);
+            var certPassword = result.GetValue(certPasswordOption);
+            var upstreamHost = result.GetValue(upstreamHostOption);
+            var upstreamPort = result.GetValue(upstreamPortOption);
+            var upstreamTls = result.GetValue(upstreamTlsOption);
+            var upstreamNoTls = result.GetValue(upstreamNoTlsOption);
+            var secret = result.GetValue(sharedSecretOption);
+            var maxSessions = result.GetValue(maxSessionsOption);
+            var sessionRate = result.GetValue(sessionRateOption);
+            var logLevel = result.GetValue(serveLogLevelOption) ?? LogLevel.Information;
+
+            if (upstreamTls && upstreamNoTls)
+            {
+                await Console.Error.WriteLineAsync("Options --upstream-tls and --upstream-notls are mutually exclusive.").ConfigureAwait(false);
+                Environment.ExitCode = 2;
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(bindAddress)) options.BindAddress = bindAddress;
+            if (bindPort is > 0) options.BindPort = bindPort.Value;
+            options.DownstreamTls = downstreamTls;
+            if (!string.IsNullOrWhiteSpace(certPath)) options.ServerCertificatePath = certPath;
+            if (!string.IsNullOrWhiteSpace(certPassword)) options.ServerCertificatePassword = certPassword;
+            if (!string.IsNullOrWhiteSpace(upstreamHost)) options.UpstreamHost = upstreamHost;
+            if (upstreamPort is > 0) options.UpstreamPort = upstreamPort.Value;
+            options.UpstreamTls = upstreamTls || (!upstreamTls && !upstreamNoTls); // default true unless explicitly disabled
+            if (!string.IsNullOrWhiteSpace(secret)) options.SharedSecret = secret;
+            if (maxSessions is > 0) options.MaxSessions = maxSessions.Value;
+            if (sessionRate is >= 0) options.SessionRatePerSecond = sessionRate.Value;
+
+            if (!options.TryValidate(out var error))
+            {
+                await Console.Error.WriteLineAsync(error ?? "Invalid options").ConfigureAwait(false);
+                Environment.ExitCode = 2;
+                return;
+            }
+
+            using var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder
+                    .SetMinimumLevel(logLevel)
+                    .AddSimpleConsole(o =>
+                    {
+                        o.IncludeScopes = false;
+                        o.SingleLine = true;
+                        o.ColorBehavior = LoggerColorBehavior.Enabled;
+                        o.TimestampFormat = "[HH:mm:ss] ";
+                        o.UseUtcTimestamp = false;
+                    });
+            });
+            var logger = loggerFactory.CreateLogger("IrcBouncer.Serve");
+
+            logger.LogInformation("Bouncer server scaffolding configured: bind {Bind}:{Port} (TLS={DTls}), upstream {UHost}:{UPort} (TLS={UTls}), maxSessions={Max}",
+                options.BindAddress, options.BindPort, options.DownstreamTls, options.UpstreamHost, options.UpstreamPort, options.UpstreamTls, options.MaxSessions);
+
+            await Console.Out.WriteLineAsync("[INFO] Serve scaffolding in place. Implementation of network listener will follow.").ConfigureAwait(false);
+        });
+
         var root = new RootCommand("Simple IRC bouncer client. Type raw IRC lines to send. Use /quit to exit.")
         {
             serverOption,
@@ -67,7 +168,8 @@ internal static class Program
             userOption,
             realOption,
             passOption,
-            logLevelOption
+            logLevelOption,
+            serve
         };
 
         root.SetAction(async (result, cancellationToken) =>
