@@ -1,4 +1,4 @@
-﻿using System.CommandLine;
+using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
@@ -25,7 +25,7 @@ internal static class Program
         };
 
         var tlsOption = new Option<bool>("--tls") { Description = "Use TLS to connect (default)" };
-        var noTlsOption = new Option<bool>("--notls" ) { Description = "Do not use TLS to connect" };
+        var noTlsOption = new Option<bool>("--notls") { Description = "Do not use TLS to connect" };
 
         var nickOption = new Option<string>("--nick", "-n")
         {
@@ -74,14 +74,14 @@ internal static class Program
         {
             var tls = result.GetValue(tlsOption);
             var notls = result.GetValue(noTlsOption);
-            
+
             if (tls && notls)
             {
                 await Console.Error.WriteLineAsync("Options --tls and --notls are mutually exclusive.").ConfigureAwait(false);
                 Environment.ExitCode = 2;
                 return;
             }
-            
+
             var server = result.GetValue(serverOption);
             var port = result.GetValue(portOption);
             var nick = result.GetValue(nickOption);
@@ -89,42 +89,42 @@ internal static class Program
             var real = result.GetValue(realOption);
             var pass = result.GetValue(passOption);
             var logLevel = result.GetValue(logLevelOption);
-            
+
             // Configuration precedence: CLI args > Environment variables > Defaults
-            var finalServer = string.IsNullOrWhiteSpace(server) 
-                ? Environment.GetEnvironmentVariable("IRC_SERVER") ?? "irc.libera.chat" 
+            var finalServer = string.IsNullOrWhiteSpace(server)
+                ? Environment.GetEnvironmentVariable("IRC_SERVER") ?? "irc.libera.chat"
                 : server;
-            
-            var finalPort = port is > 0 
-                ? port.Value 
-                : int.TryParse(Environment.GetEnvironmentVariable("IRC_PORT"), out var envPort) && envPort > 0 
-                    ? envPort 
+
+            var finalPort = port is > 0
+                ? port.Value
+                : int.TryParse(Environment.GetEnvironmentVariable("IRC_PORT"), out var envPort) && envPort > 0
+                    ? envPort
                     : 6697;
-            
-            var finalNick = string.IsNullOrWhiteSpace(nick) 
-                ? Environment.GetEnvironmentVariable("IRC_NICK") ?? "IrcBouncer" + RandomNumberGenerator.GetInt32(1000, 9999) 
+
+            var finalNick = string.IsNullOrWhiteSpace(nick)
+                ? Environment.GetEnvironmentVariable("IRC_NICK") ?? "IrcBouncer" + RandomNumberGenerator.GetInt32(1000, 9999)
                 : nick;
-            
-            var finalUser = string.IsNullOrWhiteSpace(user) 
-                ? Environment.GetEnvironmentVariable("IRC_USER") ?? "iruser" 
+
+            var finalUser = string.IsNullOrWhiteSpace(user)
+                ? Environment.GetEnvironmentVariable("IRC_USER") ?? "iruser"
                 : user;
-            
-            var finalReal = string.IsNullOrWhiteSpace(real) 
-                ? Environment.GetEnvironmentVariable("IRC_REAL") ?? "Irc Bouncer" 
+
+            var finalReal = string.IsNullOrWhiteSpace(real)
+                ? Environment.GetEnvironmentVariable("IRC_REAL") ?? "Irc Bouncer"
                 : real;
 
             // For password, prefer CLI arg, then environment variable (no default)
-            var finalPass = !string.IsNullOrWhiteSpace(pass) 
-                ? pass 
+            var finalPass = !string.IsNullOrWhiteSpace(pass)
+                ? pass
                 : Environment.GetEnvironmentVariable("IRC_PASS");
 
             // TLS configuration: CLI flags take precedence, then environment variable, then default to true
             var useTls = tls || (!tls && !notls && Environment.GetEnvironmentVariable("IRC_TLS")?.ToUpperInvariant() != "FALSE"); // default to true unless explicitly disabled
-            
+
             // Log level configuration: CLI arg > Environment variable > Default to Information
-            var finalLogLevel = logLevel ?? 
-                (Enum.TryParse<LogLevel>(Environment.GetEnvironmentVariable("IRC_LOG_LEVEL"), true, out var envLogLevel) 
-                    ? envLogLevel 
+            var finalLogLevel = logLevel ??
+                (Enum.TryParse<LogLevel>(Environment.GetEnvironmentVariable("IRC_LOG_LEVEL"), true, out var envLogLevel)
+                    ? envLogLevel
                     : LogLevel.Information);
 
             // Set up logging
@@ -142,13 +142,13 @@ internal static class Program
                     });
             });
             var logger = loggerFactory.CreateLogger("IrcBouncer.Program");
-            
+
             var code = await RunAsync(finalServer, finalPort, useTls, finalNick, finalUser, finalReal, finalPass, logger, cancellationToken).ConfigureAwait(false);
             Environment.ExitCode = code;
         });
-        
+
         var parseResult = root.Parse(args);
-        
+
         foreach (var parseError in parseResult.Errors)
         {
             await Console.Error.WriteLineAsync(parseError.Message).ConfigureAwait(false);
@@ -174,7 +174,7 @@ internal static class Program
 
         var cmdLine = input[1..];
         var spaceIndex = cmdLine.IndexOf(' ', StringComparison.InvariantCulture);
-        
+
         if (spaceIndex > 0)
         {
             var commandUpper = cmdLine[..spaceIndex].ToUpperInvariant();
@@ -207,15 +207,15 @@ internal static class Program
         var gracefulShutdownRequested = false;
         var connectionStartTime = DateTime.UtcNow;
 
-        Console.CancelKeyPress += async (_, e) => 
-        { 
-            e.Cancel = true; 
+        Console.CancelKeyPress += async (_, e) =>
+        {
+            e.Cancel = true;
             logger.LogInformation("Graceful shutdown requested");
             gracefulShutdownRequested = true;
-            await cts.CancelAsync().ConfigureAwait(false); 
+            await cts.CancelAsync().ConfigureAwait(false);
         };
 
-        logger.LogInformation("Connecting to {Server}:{Port} (TLS={UseTls}) as {Nick} ... Press Ctrl+C to quit", 
+        logger.LogInformation("Connecting to {Server}:{Port} (TLS={UseTls}) as {Nick} ... Press Ctrl+C to quit",
             server, port, useTls, nick);
 
         using var connection = new EventTcpClient();
@@ -248,7 +248,7 @@ internal static class Program
             metrics.IncrementDisconnections(gracefulShutdownRequested ? "user" : "remote");
             disconnectedTcs.TrySetResult(true);
         };
-        
+
         // Create a dedicated background task for user input handling, bound to the application lifecycle
         var writeTask = new Task(async () =>
         {
@@ -264,13 +264,13 @@ internal static class Program
                     var toSend = ParseSlashCommand(original);
                     var isCommand = original.StartsWith('/');
                     string? commandUpper = null;
-                    
+
                     if (isCommand && original.Length > 1)
                     {
                         var cmdLine = original[1..];
                         var spaceIndex = cmdLine.IndexOf(' ', StringComparison.InvariantCulture);
-                        commandUpper = spaceIndex > 0 
-                            ? cmdLine[..spaceIndex].ToUpperInvariant() 
+                        commandUpper = spaceIndex > 0
+                            ? cmdLine[..spaceIndex].ToUpperInvariant()
                             : cmdLine.ToUpperInvariant();
                         commandUpper = commandUpper switch
                         {
@@ -281,13 +281,13 @@ internal static class Program
                     }
 
                     logger.LogOutgoingMessage(toSend);
-                    
+
                     var command = IrcMetrics.ExtractCommand(toSend);
                     var hasSensitiveData = LoggingExtensions.ContainsSensitiveData(toSend);
                     metrics.IncrementMessagesSent(command, hasSensitiveData);
-                    
+
                     await ircClient.SendAsync(toSend);
-                    
+
                     if (isCommand && commandUpper == "QUIT")
                     {
                         ircClient.Disconnect();
@@ -308,7 +308,7 @@ internal static class Program
                 cts.Cancel();
             }
         }, cts.Token, TaskCreationOptions.LongRunning);
-        
+
         // Start the dedicated background task
         writeTask.Start();
 
@@ -316,10 +316,10 @@ internal static class Program
         {
             // Start the connection task
             await ircClient.ConnectAsync(server, port, useTls, nick, user, real, pass, cts.Token);
-            
+
             // Wait for either write task to complete
             await writeTask.ConfigureAwait(false);
-            
+
             // If graceful shutdown was requested via Ctrl+C, initiate proper shutdown sequence
             if (gracefulShutdownRequested)
             {
@@ -327,10 +327,10 @@ internal static class Program
                 {
                     logger.LogInformation("Sending QUIT command");
                     await ircClient.SendAsync("QUIT :Graceful shutdown", cts.Token).ConfigureAwait(false);
-                    
+
                     logger.LogInformation("Disconnecting from server");
                     ircClient.Disconnect();
-                    
+
                     logger.LogInformation("Waiting for disconnect confirmation");
                     // Wait for Disconnected event with a timeout
                     using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -355,7 +355,7 @@ internal static class Program
                 metrics.IncrementErrors("connection");
             }
         }
-        
+
         return 0;
     }
 }

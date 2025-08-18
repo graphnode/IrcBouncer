@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace IrcBouncer.Tests;
 
@@ -11,7 +11,8 @@ public class EventTcpClientTests
         // Arrange
         using var client = new EventTcpClient();
         var disconnectedCount = 0;
-        client.Disconnected += (_, _) => {
+        client.Disconnected += (_, _) =>
+        {
             disconnectedCount++;
             Console.WriteLine("[DEBUG_LOG] Disconnected event fired");
         };
@@ -77,7 +78,8 @@ public class EventTcpClientTests
         // Arrange
         var client = new EventTcpClient();
         var disposedCount = 0;
-        client.Disconnected += (_, _) => {
+        client.Disconnected += (_, _) =>
+        {
             disposedCount++;
             Console.WriteLine("[DEBUG_LOG] Disconnected event during disposal");
         };
@@ -137,9 +139,9 @@ public class EventTcpClientTests
         client.Dispose();
 
         // Act & Assert
-        Assert.ThrowsExceptionAsync<ObjectDisposedException>(async () => 
+        Assert.ThrowsExceptionAsync<ObjectDisposedException>(async () =>
             await client.ConnectAsync("example.com", 6667, false));
-        
+
         Console.WriteLine("[DEBUG_LOG] ConnectAsync after dispose exception verification completed");
     }
 
@@ -154,19 +156,23 @@ public class EventTcpClientTests
         var dataReceived = false;
 
         // Act - Register event handlers
-        client.Connected += (_, _) => {
+        client.Connected += (_, _) =>
+        {
             connectedFired = true;
             Console.WriteLine("[DEBUG_LOG] Connected event handler fired");
         };
-        client.ConnectionError += (_, ex) => {
+        client.ConnectionError += (_, ex) =>
+        {
             errorFired = true;
             Console.WriteLine($"[DEBUG_LOG] Error event handler fired: {ex.Message}");
         };
-        client.Disconnected += (_, _) => {
+        client.Disconnected += (_, _) =>
+        {
             disconnectedFired = true;
             Console.WriteLine("[DEBUG_LOG] Disconnected event handler fired");
         };
-        client.Data += (_, data) => {
+        client.Data += (_, data) =>
+        {
             dataReceived = true;
             Console.WriteLine($"[DEBUG_LOG] Data event handler fired: {data}");
         };
@@ -216,7 +222,7 @@ public class EventTcpClientTests
 
         // Assert - Should not have concurrency-related exceptions
         Assert.AreEqual(0, exceptions.Count, $"Concurrent writes had {exceptions.Count} exceptions: {string.Join(", ", exceptions.Select(e => e.Message))}");
-        
+
         Console.WriteLine("[DEBUG_LOG] Concurrent writes serialization verification completed");
     }
 }

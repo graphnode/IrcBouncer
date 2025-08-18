@@ -1,4 +1,4 @@
-﻿namespace IrcBouncer;
+namespace IrcBouncer;
 
 /// <summary>
 /// Abstraction over network connection for testability.

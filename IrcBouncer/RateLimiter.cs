@@ -1,4 +1,4 @@
-﻿namespace IrcBouncer;
+namespace IrcBouncer;
 
 /// <summary>
 /// Configuration options for IRC rate limiting.
@@ -58,11 +58,11 @@ internal sealed class RateLimiter(RateLimitOptions options) : IDisposable
             {
                 var oldestTimestamp = _messageTimestamps.Peek();
                 var waitTime = oldestTimestamp.AddMilliseconds(_options.WindowMs) - now;
-                
+
                 if (waitTime > TimeSpan.Zero)
                 {
                     await Task.Delay(waitTime, cancellationToken).ConfigureAwait(false);
-                    
+
                     // Clean up again after waiting
                     var newNow = DateTime.UtcNow;
                     var newWindowStart = newNow.AddMilliseconds(-_options.WindowMs);

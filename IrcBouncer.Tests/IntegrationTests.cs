@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -23,7 +23,7 @@ public class IntegrationTests
 
         // Act
         await client.ConnectAsync(mockServer.Host, mockServer.Port, false, "testnick", "testuser", "Test User", "testpass");
-        
+
         // Wait for connection and initial messages
         await Task.Delay(500);
 
@@ -33,7 +33,7 @@ public class IntegrationTests
         Assert.AreEqual("PASS testpass", mockServer.ReceivedMessages[0]);
         Assert.AreEqual("NICK testnick", mockServer.ReceivedMessages[1]);
         Assert.AreEqual("USER testuser 0 * :Test User", mockServer.ReceivedMessages[2]);
-        
+
         Console.WriteLine("[DEBUG_LOG] Loopback server integration test completed");
     }
 
@@ -46,31 +46,31 @@ public class IntegrationTests
 
         using var connection = new EventTcpClient();
         using var client = new IrcClient(connection);
-        
+
         await client.ConnectAsync(mockServer.Host, mockServer.Port, false, "testnick", "testuser", "Test User");
-        
+
         // Wait for connection to stabilize and authentication to complete
         await Task.Delay(1000);
-        
+
         // Clear all messages received so far (auth messages)
         mockServer.ReceivedMessages.Clear();
 
         // Act - Send PING from server
         await mockServer.SendMessageAsync("PING :test.server.com");
-        
+
         // Wait for the automatic PONG response
         await Task.Delay(1000);
 
         // Assert - Check that the server received the PONG response
         Console.WriteLine($"[DEBUG_LOG] Messages received by server: [{string.Join(", ", mockServer.ReceivedMessages)}]");
-        
-        Assert.IsTrue(mockServer.ReceivedMessages.Count > 0, 
+
+        Assert.IsTrue(mockServer.ReceivedMessages.Count > 0,
             $"Server should have received PONG response. Received {mockServer.ReceivedMessages.Count} messages: [{string.Join(", ", mockServer.ReceivedMessages)}]");
-        
+
         var pongMessage = mockServer.ReceivedMessages.FirstOrDefault(m => m.StartsWith("PONG"));
         Assert.IsNotNull(pongMessage, $"Should have received a PONG message. Messages: [{string.Join(", ", mockServer.ReceivedMessages)}]");
         Assert.AreEqual("PONG :test.server.com", pongMessage);
-        
+
         Console.WriteLine("[DEBUG_LOG] PING/PONG integration test completed");
     }
 
@@ -97,7 +97,7 @@ public class IntegrationTests
         // Assert
         Assert.AreEqual(1, mockServer.ReceivedMessages.Count);
         Assert.AreEqual("JOIN #testchannel", mockServer.ReceivedMessages[0]);
-        
+
         Console.WriteLine("[DEBUG_LOG] Send message integration test completed");
     }
 }
@@ -109,20 +109,20 @@ internal class MockIrcServer(int port) : IDisposable
     private readonly List<NetworkStream?> _clientStreams = new();
     private CancellationTokenSource? _cts;
     private Task? _serverTask;
-    
+
     public string Host => ((IPEndPoint)_listener!.LocalEndpoint).Address.ToString();
     public int Port => ((IPEndPoint)_listener!.LocalEndpoint).Port;
 
     public List<string> ReceivedMessages { get; } = new();
 
-    public MockIrcServer() : this(0) {}
+    public MockIrcServer() : this(0) { }
 
     public async Task StartAsync()
     {
         _listener = new TcpListener(IPAddress.Loopback, port);
         _listener.Start();
         _cts = new CancellationTokenSource();
-        
+
         _serverTask = Task.Run(async () =>
         {
             try
@@ -131,10 +131,10 @@ internal class MockIrcServer(int port) : IDisposable
                 {
                     var client = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
                     _clients.Add(client);
-                    
+
                     var stream = client.GetStream();
                     _clientStreams.Add(stream);
-                    
+
                     // Handle client in background
                     _ = Task.Run(() => HandleClientAsync(stream, _cts.Token), _cts.Token);
                 }
@@ -158,13 +158,13 @@ internal class MockIrcServer(int port) : IDisposable
         try
         {
             using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
-            
+
             while (!cancellationToken.IsCancellationRequested && stream.CanRead)
             {
                 var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
                 if (line == null)
                     break;
-                
+
                 lock (ReceivedMessages)
                 {
                     ReceivedMessages.Add(line);
@@ -197,7 +197,7 @@ internal class MockIrcServer(int port) : IDisposable
 
             await using var writer = new StreamWriter(stream, Encoding.UTF8, leaveOpen: true);
             writer.AutoFlush = true;
-            
+
             foreach (var message in messages)
             {
                 await writer.WriteLineAsync(message).ConfigureAwait(false);

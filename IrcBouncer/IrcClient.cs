@@ -1,4 +1,4 @@
-﻿namespace IrcBouncer;
+namespace IrcBouncer;
 
 /// <summary>
 /// IRC client that handles protocol logic while using an abstract connection for transport.
@@ -61,7 +61,7 @@ public sealed class IrcClient : IDisposable
     {
         _connection = connection ?? throw new ArgumentNullException(nameof(connection));
         _rateLimiter = new RateLimiter(rateLimitOptions ?? throw new ArgumentNullException(nameof(rateLimitOptions)));
-        
+
         _connection.Connected += OnConnectionConnected;
         _connection.Data += OnConnectionData;
         _connection.ConnectionError += OnConnectionError;
@@ -80,7 +80,7 @@ public sealed class IrcClient : IDisposable
             User = user;
             Real = real;
             Pass = pass;
-            
+
             _ = _connection.ConnectAsync(server, port, useTls, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -103,7 +103,7 @@ public sealed class IrcClient : IDisposable
         {
             // Apply rate limiting before sending
             await _rateLimiter.WaitAsync(cancellationToken).ConfigureAwait(false);
-            
+
             await _connection.Write(command, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -135,17 +135,17 @@ public sealed class IrcClient : IDisposable
             {
                 await _connection.Write($"PASS {Pass}").ConfigureAwait(false);
             }
-            
+
             if (!string.IsNullOrEmpty(Nick))
             {
                 await _connection.Write($"NICK {Nick}").ConfigureAwait(false);
             }
-            
+
             if (!string.IsNullOrEmpty(User) && !string.IsNullOrEmpty(Real))
             {
                 await _connection.Write($"USER {User} 0 * :{Real}").ConfigureAwait(false);
             }
-            
+
             Connected?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
@@ -160,7 +160,7 @@ public sealed class IrcClient : IDisposable
         {
             // Parse the IRC message using structured parser
             var ircMessage = IrcMessage.Parse(rawMessage);
-            
+
             // Handle PING/PONG automatically
             if (ircMessage.Command == "PING")
             {
@@ -168,31 +168,31 @@ public sealed class IrcClient : IDisposable
                 await _connection.Write(pongMessage.Format()).ConfigureAwait(false);
                 return;
             }
-            
+
             // Emit structured events based on message type
             switch (ircMessage.Command)
             {
                 case "PRIVMSG":
                     PrivmsgReceived?.Invoke(this, new IrcPrivmsgEventArgs(rawMessage, ircMessage));
                     break;
-                    
+
                 case "NOTICE":
                     NoticeReceived?.Invoke(this, new IrcNoticeEventArgs(rawMessage, ircMessage));
                     break;
-                    
+
                 case "JOIN":
                     UserJoined?.Invoke(this, new IrcJoinEventArgs(rawMessage, ircMessage));
                     break;
-                    
+
                 case "PART":
                     UserParted?.Invoke(this, new IrcPartEventArgs(rawMessage, ircMessage));
                     break;
-                    
+
                 case "ERROR":
                     IrcError?.Invoke(this, new IrcErrorEventArgs(rawMessage, ircMessage));
                     break;
             }
-            
+
             // Always emit the raw message event for backward compatibility and other message types
             MessageReceived?.Invoke(this, rawMessage);
         }
@@ -215,12 +215,12 @@ public sealed class IrcClient : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        
+
         _connection.Connected -= OnConnectionConnected;
         _connection.Data -= OnConnectionData;
         _connection.ConnectionError -= OnConnectionError;
         _connection.Disconnected -= OnConnectionDisconnected;
-        
+
         _connection.Dispose();
         _rateLimiter.Dispose();
         _disposed = true;

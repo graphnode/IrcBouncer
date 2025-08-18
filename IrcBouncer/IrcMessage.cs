@@ -1,4 +1,4 @@
-﻿namespace IrcBouncer;
+namespace IrcBouncer;
 
 /// <summary>
 /// Represents a structured IRC message with prefix, command, parameters, and trailing text.

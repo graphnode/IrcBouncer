@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -91,7 +91,7 @@ public sealed class EventTcpClient : IConnection
     /// per connection lifecycle.
     /// </summary>
     public event EventHandler? Disconnected;
-    
+
     private StreamWriter? _writer;
     private StreamReader? _reader;
     private readonly TcpClient _client = new();
@@ -236,13 +236,13 @@ public sealed class EventTcpClient : IConnection
     {
         if (_disposed || _writer == null)
             return;
-        
+
         await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (_disposed)
                 return;
-            
+
             await _writer.WriteLineAsync(line.AsMemory(), cancellationToken).ConfigureAwait(false);
             await _writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -257,7 +257,7 @@ public sealed class EventTcpClient : IConnection
             _writeSemaphore.Release();
         }
     }
-    
+
     /// <summary>
     /// Explicitly disconnects from the remote endpoint.
     /// </summary>
@@ -268,7 +268,7 @@ public sealed class EventTcpClient : IConnection
 
         _connectionCts?.Cancel();
         _client.Close();
-        
+
         FireDisconnectedOnce();
     }
 
@@ -276,12 +276,12 @@ public sealed class EventTcpClient : IConnection
     {
         if (_disposed)
             return;
-        
+
         _disposed = true;
-        
+
         _connectionCts?.Cancel();
         _client.Close();
-        
+
         // Wait for read task to complete with a timeout
         try
         {
@@ -291,13 +291,13 @@ public sealed class EventTcpClient : IConnection
         {
             // Ignore exceptions during disposal
         }
-        
+
         _writeSemaphore.Dispose();
         _writer?.Dispose();
         _reader?.Dispose();
         _client.Dispose();
         _connectionCts?.Dispose();
-        
+
         FireDisconnectedOnce();
     }
 
@@ -308,10 +308,10 @@ public sealed class EventTcpClient : IConnection
             while (!cancellationToken.IsCancellationRequested && _reader != null)
             {
                 var line = await _reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
-                
-                if (line == null) 
+
+                if (line == null)
                     break;
-                
+
                 Data?.Invoke(this, line);
             }
         }

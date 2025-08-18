@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Net.Security;
 
 namespace IrcBouncer.Tests;
@@ -17,11 +17,11 @@ public class TlsTests
 
         // Assert
         Assert.IsNotNull(options.CertificateValidationCallback);
-        
+
         // Test the callback functionality
         var result = options.CertificateValidationCallback(null!, null, null, SslPolicyErrors.None);
         Assert.IsTrue(result);
-        
+
         Console.WriteLine("[DEBUG_LOG] Certificate validation callback configuration verified");
     }
 
@@ -56,7 +56,7 @@ public class TlsTests
         // Act & Assert - This tests the configuration without actually connecting to a TLS server
         // The real TLS connection would fail in a unit test environment, but we can verify
         // that the client is configured correctly for TLS usage
-        
+
         try
         {
             // Attempt connection to a non-existent TLS server
@@ -69,7 +69,7 @@ public class TlsTests
             Console.WriteLine($"[DEBUG_LOG] Expected TLS connection failure: {ex.GetType().Name}");
             Assert.IsTrue(ex is System.Net.Sockets.SocketException or System.Net.NetworkInformation.PingException or TaskCanceledException or AggregateException, "Should fail with network-related exception");
         }
-        
+
         Console.WriteLine("[DEBUG_LOG] TLS configuration parameters verified");
     }
 
@@ -95,7 +95,7 @@ public class TlsTests
         Assert.AreEqual("test.server.com", mockConnection.LastHost);
         Assert.AreEqual(6697, mockConnection.LastPort);
         Assert.IsTrue(mockConnection.LastUseTls);
-        
+
         Console.WriteLine("[DEBUG_LOG] TLS parameter passing verified");
     }
 
@@ -121,7 +121,7 @@ public class TlsTests
         Assert.AreEqual("test.server.com", mockConnection.LastHost);
         Assert.AreEqual(6667, mockConnection.LastPort);
         Assert.IsFalse(mockConnection.LastUseTls);
-        
+
         Console.WriteLine("[DEBUG_LOG] Non-TLS parameter passing verified");
     }
 
@@ -140,7 +140,7 @@ public class TlsTests
         Assert.AreEqual(10000, options.ConnectTimeoutMs);
         Assert.AreEqual(30000, options.ReadTimeoutMs);
         Assert.AreEqual(15000, options.WriteTimeoutMs);
-        
+
         Console.WriteLine("[DEBUG_LOG] TLS timeout configuration verified");
     }
 }
@@ -166,12 +166,12 @@ internal class MockTlsConnection : IConnection
         LastHost = host;
         LastPort = port;
         LastUseTls = useTls;
-        
+
         await Task.Delay(10); // Simulate async operation
-        
+
         // Simulate connection success for parameter verification
         Connected?.Invoke(this, EventArgs.Empty);
-        
+
         // Throw exception to prevent actual connection attempt
         throw new InvalidOperationException("Mock connection - operation not implemented");
     }

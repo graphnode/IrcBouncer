@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace IrcBouncer.Tests;
 
@@ -25,9 +25,9 @@ public class LifecycleTests
         await Task.Delay(100);
 
         // Verify that Disconnected was fired
-        Assert.IsTrue(eventSequence.Contains("Disconnected"), 
+        Assert.IsTrue(eventSequence.Contains("Disconnected"),
             $"Expected Disconnected event. Events: [{string.Join(", ", eventSequence)}]");
-        
+
         Console.WriteLine($"[DEBUG_LOG] Event sequence: [{string.Join(", ", eventSequence)}]");
     }
 
@@ -48,11 +48,11 @@ public class LifecycleTests
         try
         {
             await client.ConnectAsync("test.server.com", 6667, false, "testnick", "testuser", "Test User");
-            
+
             // Simulate receiving data
             mockConnection.SimulateData(":server.test.com 001 testnick :Welcome");
             await Task.Delay(100);
-            
+
             // Simulate disconnect
             client.Disconnect();
             await Task.Delay(100);
@@ -63,11 +63,11 @@ public class LifecycleTests
         }
 
         // Assert - Verify event sequence
-        Assert.IsTrue(eventSequence.Contains("IrcClient.Connected"), 
+        Assert.IsTrue(eventSequence.Contains("IrcClient.Connected"),
             "Should have Connected event");
-        Assert.IsTrue(eventSequence.Any(e => e.StartsWith("IrcClient.MessageReceived")), 
+        Assert.IsTrue(eventSequence.Any(e => e.StartsWith("IrcClient.MessageReceived")),
             "Should have MessageReceived event");
-        Assert.IsTrue(eventSequence.Contains("IrcClient.Disconnected"), 
+        Assert.IsTrue(eventSequence.Contains("IrcClient.Disconnected"),
             "Should have Disconnected event");
 
         Console.WriteLine($"[DEBUG_LOG] IrcClient lifecycle events: [{string.Join(", ", eventSequence)}]");
@@ -105,7 +105,7 @@ public class LifecycleTests
 
         // Assert
         Assert.IsTrue(eventSequence.Any(e => e.Contains("Cancel") || e.Contains("Exception")), $"Should handle cancellation/errors. Events: [{string.Join(", ", eventSequence)}]");
-        
+
         Console.WriteLine($"[DEBUG_LOG] Cancellation events: [{string.Join(", ", eventSequence)}]");
     }
 
@@ -120,12 +120,12 @@ public class LifecycleTests
         using var client = new EventTcpClient();
 
         client.Connected += (_, _) => eventSequence.Add("Connected");
-        client.ConnectionError += (_, ex) => 
+        client.ConnectionError += (_, ex) =>
         {
             eventSequence.Add($"Error:{ex.GetType().Name}");
             errorReceived = true;
         };
-        client.Disconnected += (_, _) => 
+        client.Disconnected += (_, _) =>
         {
             eventSequence.Add("Disconnected");
             disconnectedReceived = true;
@@ -146,7 +146,7 @@ public class LifecycleTests
         // Assert
         Console.WriteLine($"[DEBUG_LOG] Error path events: [{string.Join(", ", eventSequence)}]");
         Console.WriteLine($"[DEBUG_LOG] Error received: {errorReceived}, Disconnected received: {disconnectedReceived}");
-        
+
         // At minimum, we should get an exception or error handling
         Assert.IsTrue(eventSequence.Count > 0, "Should have received some events during error scenario");
     }
@@ -167,7 +167,7 @@ public class LifecycleTests
 
         // Assert
         Assert.AreEqual(1, disconnectCount, "Disconnected event should fire only once");
-        
+
         Console.WriteLine("[DEBUG_LOG] Multiple disconnect test - Disconnected fired once as expected");
     }
 
@@ -177,12 +177,12 @@ public class LifecycleTests
         // Arrange
         var mockConnection = new LifecycleMockConnection();
         using var client = new IrcClient(mockConnection);
-        
+
         // Act
         try
         {
             await client.ConnectAsync("test.server.com", 6667, false, "testnick", "testuser", "Test User");
-            
+
             // Send multiple messages quickly to test rate limiting
             var tasks = new[]
             {
@@ -190,7 +190,7 @@ public class LifecycleTests
                 client.SendAsync("JOIN #channel2"),
                 client.SendAsync("JOIN #channel3")
             };
-            
+
             await Task.WhenAll(tasks);
             await Task.Delay(200); // Allow rate limiter to process
         }
@@ -200,9 +200,9 @@ public class LifecycleTests
         }
 
         // Assert
-        Assert.IsTrue(mockConnection.SentMessages.Count >= 3, 
+        Assert.IsTrue(mockConnection.SentMessages.Count >= 3,
             $"Should have sent multiple messages. Sent: [{string.Join(", ", mockConnection.SentMessages)}]");
-        
+
         Console.WriteLine($"[DEBUG_LOG] Rate limited operations - Messages sent: {mockConnection.SentMessages.Count}");
     }
 }
@@ -223,10 +223,10 @@ internal class LifecycleMockConnection : IConnection
     public async Task ConnectAsync(string host, int port, bool useTls, CancellationToken? cancellationToken = null)
     {
         await Task.Delay(10); // Simulate connection delay
-        
+
         IsConnected = true;
         Connected?.Invoke(this, EventArgs.Empty);
-        
+
         // Don't throw exception - allow successful "connection" for lifecycle testing
     }
 

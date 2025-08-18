@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace IrcBouncer.Tests;
 
@@ -69,7 +69,7 @@ public class IrcClientTests
         Assert.AreEqual("PASS testpass", mockConnection.SentMessages[0]);
         Assert.AreEqual("NICK testnick", mockConnection.SentMessages[1]);
         Assert.AreEqual("USER testuser 0 * :Test User", mockConnection.SentMessages[2]);
-        
+
         Console.WriteLine("[DEBUG_LOG] Auth sequence verification completed");
     }
 
@@ -87,7 +87,7 @@ public class IrcClientTests
         Assert.AreEqual(2, mockConnection.SentMessages.Count);
         Assert.AreEqual("NICK testnick", mockConnection.SentMessages[0]);
         Assert.AreEqual("USER testuser 0 * :Test User", mockConnection.SentMessages[1]);
-        
+
         Console.WriteLine("[DEBUG_LOG] Auth sequence without password verification completed");
     }
 
@@ -98,7 +98,7 @@ public class IrcClientTests
         var mockConnection = new MockConnection();
         var client = new IrcClient(mockConnection);
         await client.ConnectAsync("irc.example.com", 6667, false, "testnick", "testuser", "Test User");
-        
+
         // Clear initial auth messages
         mockConnection.SentMessages.Clear();
 
@@ -111,7 +111,7 @@ public class IrcClientTests
         // Assert
         Assert.AreEqual(1, mockConnection.SentMessages.Count);
         Assert.AreEqual("PONG :irc.example.com", mockConnection.SentMessages[0]);
-        
+
         Console.WriteLine("[DEBUG_LOG] PING/PONG behavior verification completed");
     }
 
@@ -122,7 +122,7 @@ public class IrcClientTests
         var mockConnection = new MockConnection();
         var client = new IrcClient(mockConnection);
         await client.ConnectAsync("irc.example.com", 6667, false, "testnick", "testuser", "Test User");
-        
+
         mockConnection.SentMessages.Clear();
 
         // Act
@@ -133,7 +133,7 @@ public class IrcClientTests
         // Assert
         Assert.AreEqual(1, mockConnection.SentMessages.Count);
         Assert.AreEqual("PONG :server.example.org", mockConnection.SentMessages[0]);
-        
+
         Console.WriteLine("[DEBUG_LOG] Complex PING/PONG behavior verification completed");
     }
 
@@ -144,7 +144,7 @@ public class IrcClientTests
         var mockConnection = new MockConnection();
         var client = new IrcClient(mockConnection);
         await client.ConnectAsync("irc.example.com", 6667, false, "testnick", "testuser", "Test User");
-        
+
         mockConnection.SentMessages.Clear();
 
         // Act
@@ -153,7 +153,7 @@ public class IrcClientTests
         // Assert
         Assert.AreEqual(1, mockConnection.SentMessages.Count);
         Assert.AreEqual("JOIN #testchannel", mockConnection.SentMessages[0]);
-        
+
         Console.WriteLine("[DEBUG_LOG] Raw command sending verification completed");
     }
 
@@ -171,7 +171,7 @@ public class IrcClientTests
         var passCommand = mockConnection.SentMessages.FirstOrDefault(m => m.StartsWith("PASS"));
         Assert.IsNotNull(passCommand);
         Assert.AreEqual("PASS secret123", passCommand);
-        
+
         Console.WriteLine("[DEBUG_LOG] PASS command formatting verification completed");
     }
 
@@ -189,7 +189,7 @@ public class IrcClientTests
         var nickCommand = mockConnection.SentMessages.FirstOrDefault(m => m.StartsWith("NICK"));
         Assert.IsNotNull(nickCommand);
         Assert.AreEqual("NICK MyNick123", nickCommand);
-        
+
         Console.WriteLine("[DEBUG_LOG] NICK command formatting verification completed");
     }
 
@@ -207,7 +207,7 @@ public class IrcClientTests
         var userCommand = mockConnection.SentMessages.FirstOrDefault(m => m.StartsWith("USER"));
         Assert.IsNotNull(userCommand);
         Assert.AreEqual("USER myuser 0 * :My Real Name", userCommand);
-        
+
         Console.WriteLine("[DEBUG_LOG] USER command formatting verification completed");
     }
 
@@ -225,7 +225,7 @@ public class IrcClientTests
 
         // Assert
         Assert.IsTrue(connectedFired);
-        
+
         Console.WriteLine("[DEBUG_LOG] Connected event firing verification completed");
     }
 
@@ -241,7 +241,7 @@ public class IrcClientTests
 
         // Assert
         Assert.IsFalse(mockConnection.IsConnected);
-        
+
         Console.WriteLine("[DEBUG_LOG] Disconnect behavior verification completed");
     }
 }

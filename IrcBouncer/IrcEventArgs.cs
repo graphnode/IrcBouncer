@@ -1,4 +1,4 @@
-﻿namespace IrcBouncer;
+namespace IrcBouncer;
 
 /// <summary>
 /// Base class for IRC event arguments containing common message information.

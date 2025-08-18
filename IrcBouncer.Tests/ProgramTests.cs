@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace IrcBouncer.Tests;
 
@@ -10,10 +10,10 @@ public class ProgramTests
     {
         // Arrange
         var input = "/leave #channel reason here";
-        
+
         // Act
         var result = Program.ParseSlashCommand(input);
-        
+
         // Assert
         Assert.AreEqual("PART #channel reason here", result, "LEAVE command with parameters should map to PART");
         Console.WriteLine("[DEBUG_LOG] LEAVE command mapping with parameters verified");
@@ -24,10 +24,10 @@ public class ProgramTests
     {
         // Arrange
         var input = "/leave";
-        
+
         // Act
         var result = Program.ParseSlashCommand(input);
-        
+
         // Assert
         Assert.AreEqual("PART", result);
         Console.WriteLine("[DEBUG_LOG] LEAVE command mapping without parameters verified");
@@ -38,10 +38,10 @@ public class ProgramTests
     {
         // Arrange
         var input = "/exit goodbye message";
-        
+
         // Act
         var result = Program.ParseSlashCommand(input);
-        
+
         // Assert
         Assert.AreEqual("QUIT goodbye message", result);
         Console.WriteLine("[DEBUG_LOG] EXIT command mapping with parameters verified");
@@ -52,10 +52,10 @@ public class ProgramTests
     {
         // Arrange
         var input = "/exit";
-        
+
         // Act
         var result = Program.ParseSlashCommand(input);
-        
+
         // Assert
         Assert.AreEqual("QUIT", result);
         Console.WriteLine("[DEBUG_LOG] EXIT command mapping without parameters verified");
@@ -66,10 +66,10 @@ public class ProgramTests
     {
         // Arrange
         var input = "/join #channel";
-        
+
         // Act
         var result = Program.ParseSlashCommand(input);
-        
+
         // Assert
         Assert.AreEqual("JOIN #channel", result);
         Console.WriteLine("[DEBUG_LOG] Regular slash command pass-through verified");
@@ -80,10 +80,10 @@ public class ProgramTests
     {
         // Arrange
         var input = "Hello world";
-        
+
         // Act
         var result = Program.ParseSlashCommand(input);
-        
+
         // Assert
         Assert.AreEqual("Hello world", result);
         Console.WriteLine("[DEBUG_LOG] Non-slash command pass-through verified");
@@ -94,10 +94,10 @@ public class ProgramTests
     {
         // Arrange
         var input = "/";
-        
+
         // Act
         var result = Program.ParseSlashCommand(input);
-        
+
         // Assert
         Assert.AreEqual("/", result);
         Console.WriteLine("[DEBUG_LOG] Empty slash command handling verified");
@@ -108,10 +108,10 @@ public class ProgramTests
     {
         // Arrange
         var input = "/LEAVE #channel";
-        
+
         // Act
         var result = Program.ParseSlashCommand(input);
-        
+
         // Assert
         Assert.AreEqual("PART #channel", result);
         Console.WriteLine("[DEBUG_LOG] Case insensitive command mapping verified");
@@ -122,10 +122,10 @@ public class ProgramTests
     {
         // Arrange
         var input = "/eXiT goodbye";
-        
+
         // Act
         var result = Program.ParseSlashCommand(input);
-        
+
         // Assert
         Assert.AreEqual("QUIT goodbye", result);
         Console.WriteLine("[DEBUG_LOG] Mixed case command mapping verified");

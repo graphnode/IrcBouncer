@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace IrcBouncer.Tests;
 
@@ -57,21 +57,21 @@ public class ConcurrencyTests
         // Assert - Should handle race conditions gracefully
         Console.WriteLine($"[DEBUG_LOG] Write exceptions: {writeExceptions.Count}");
         Console.WriteLine($"[DEBUG_LOG] Disconnect exceptions: {disconnectExceptions.Count}");
-        
+
         // Disconnect exceptions should be zero (disconnect should be safe)
-        Assert.AreEqual(0, disconnectExceptions.Count, 
+        Assert.AreEqual(0, disconnectExceptions.Count,
             $"Disconnect should not throw exceptions. Exceptions: {string.Join(", ", disconnectExceptions.Select(e => e.Message))}");
-        
+
         // Write exceptions are acceptable (connection closed, disposed, etc.)
         // but should be specific expected types
         foreach (var ex in writeExceptions)
         {
-            Assert.IsTrue(ex is ObjectDisposedException || 
-                         ex is InvalidOperationException || 
+            Assert.IsTrue(ex is ObjectDisposedException ||
+                         ex is InvalidOperationException ||
                          ex is OperationCanceledException,
                          $"Unexpected exception type: {ex.GetType().Name}: {ex.Message}");
         }
-        
+
         Console.WriteLine("[DEBUG_LOG] Concurrent writes and disconnect race condition test completed");
     }
 
@@ -123,15 +123,15 @@ public class ConcurrencyTests
         // Assert
         Console.WriteLine($"[DEBUG_LOG] Concurrent sends: {sendTasks.Count}, Exceptions: {sendExceptions.Count}");
         Console.WriteLine($"[DEBUG_LOG] Messages sent to mock: {mockConnection.SentMessages.Count}");
-        
+
         // Should handle concurrent operations gracefully
         foreach (var ex in sendExceptions)
         {
-            Assert.IsTrue(ex is ObjectDisposedException || 
+            Assert.IsTrue(ex is ObjectDisposedException ||
                          ex is InvalidOperationException,
                          $"Unexpected exception type: {ex.GetType().Name}: {ex.Message}");
         }
-        
+
         Console.WriteLine("[DEBUG_LOG] IrcClient concurrent send and disconnect test completed");
     }
 
@@ -170,11 +170,11 @@ public class ConcurrencyTests
         await Task.Delay(100); // Allow event handlers to complete
 
         // Assert
-        Assert.AreEqual(0, exceptions.Count, 
+        Assert.AreEqual(0, exceptions.Count,
             $"Multiple disconnects should not throw exceptions. Exceptions: {string.Join(", ", exceptions.Select(e => e.Message))}");
-        Assert.AreEqual(1, disconnectCount, 
+        Assert.AreEqual(1, disconnectCount,
             "Disconnected event should fire exactly once regardless of multiple calls");
-        
+
         Console.WriteLine("[DEBUG_LOG] Multiple disconnect thread safety test completed");
     }
 
@@ -217,15 +217,15 @@ public class ConcurrencyTests
 
         // Assert
         Console.WriteLine($"[DEBUG_LOG] Operation exceptions during dispose: {operationExceptions.Count}");
-        
+
         // All exceptions should be ObjectDisposedException or similar
         foreach (var ex in operationExceptions)
         {
-            Assert.IsTrue(ex is ObjectDisposedException || 
+            Assert.IsTrue(ex is ObjectDisposedException ||
                          ex is InvalidOperationException,
                          $"Expected disposal-related exception, got: {ex.GetType().Name}: {ex.Message}");
         }
-        
+
         Console.WriteLine("[DEBUG_LOG] Dispose during operations thread safety test completed");
     }
 }
