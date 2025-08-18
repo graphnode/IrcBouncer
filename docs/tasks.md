@@ -46,14 +46,14 @@
 36. [x] Logging: Introduce Microsoft.Extensions.Logging; avoid Console I/O in library code. Make log level configurable.
 37. [x] Observability: Add structured logging and optional redaction for sensitive data (e.g., PASS). Consider basic counters via System.Diagnostics.Metrics.
 
-38. [ ] Performance: Make buffer sizes configurable and minimize allocations in the read loop; consider System.IO.Pipelines if throughput becomes a goal.
-39. [ ] Performance: Avoid Task.Run for the read loop; use a dedicated background Task bound to the instance lifecycle.
+38. [x] Performance: Make buffer sizes configurable and minimize allocations in the read loop; consider System.IO.Pipelines if throughput becomes a goal.
+39. [x] Performance: Avoid Task.Run for the read loop; use a dedicated background Task bound to the instance lifecycle.
 
-40. [ ] CI: Add GitHub Actions workflow to build, run tests, and publish code coverage (Coverlet + ReportGenerator) on PRs.
-41. [ ] Maintenance: Add Dependabot/Renovate for automated dependency updates.
-42. [ ] Tooling: Add dotnet format and include style/analysis checks in CI quality gates.
+40. [x] CI: Add GitHub Actions workflow to build, run tests, and publish code coverage (Coverlet + ReportGenerator) on PRs.
+41. [x] Maintenance: Add Dependabot/Renovate for automated dependency updates.
+42. [x] Tooling: Add dotnet format and include style/analysis checks in CI quality gates.
 
-43. [ ] Packaging: Provide release packaging instructions and optionally a dotnet tool package for easy installation.
+43. [x] Packaging: Provide release packaging instructions and optionally a dotnet tool package for easy installation.
 
-44. [ ] Documentation: Document connection lifecycle, TLS behavior, and error/exit semantics.
-45. [ ] Documentation: Add CONTRIBUTING.md and CODE_OF_CONDUCT.md to support external contributions.
+44. [x] Documentation: Document connection lifecycle, TLS behavior, and error/exit semantics.
+45. [x] Documentation: Add CONTRIBUTING.md and CODE_OF_CONDUCT.md to support external contributions.

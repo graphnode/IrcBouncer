@@ -5,10 +5,29 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    
+    <!-- Package configuration for dotnet tool -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>ircbouncer</ToolCommandName>
+    <PackageId>IrcBouncer</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>IrcBouncer Contributors</Authors>
+    <Description>A secure-by-default IRC bouncer/client with modern .NET architecture, structured logging, and comprehensive testing.</Description>
+    <PackageProjectUrl>https://github.com/graphnode/IrcBouncer</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/graphnode/IrcBouncer</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>irc;bouncer;client;networking;tls</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Initial release with secure TLS-by-default IRC connectivity, structured logging, and comprehensive test coverage.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="IrcBouncer.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>

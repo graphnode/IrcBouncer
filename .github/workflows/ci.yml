@@ -1,0 +1,93 @@
+﻿name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+      
+    - name: Test with coverage
+      run: dotnet test --no-build --configuration Release --collect:"XPlat Code Coverage" --results-directory ./coverage
+      
+    - name: Install ReportGenerator tool
+      run: dotnet tool install -g dotnet-reportgenerator-globaltool
+      
+    - name: Generate coverage report
+      run: reportgenerator -reports:"./coverage/**/coverage.cobertura.xml" -targetdir:"./coverage/report" -reporttypes:"Html;Cobertura"
+      
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./coverage/report/Cobertura.xml
+        fail_ci_if_error: false
+        
+    - name: Upload coverage report as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: ./coverage/report
+        
+    - name: Comment PR with coverage
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          try {
+            const coverageFile = './coverage/report/Cobertura.xml';
+            if (fs.existsSync(coverageFile)) {
+              const coverage = fs.readFileSync(coverageFile, 'utf8');
+              const match = coverage.match(/line-rate="([^"]+)"/);
+              if (match) {
+                const lineRate = (parseFloat(match[1]) * 100).toFixed(1);
+                const body = `## Code Coverage Report 📊\n\nLine Coverage: **${lineRate}%**\n\n[View detailed report](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+                
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: body
+                });
+              }
+            }
+          } catch (error) {
+            console.log('Could not post coverage comment:', error.message);
+          }
+
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Check format
+      run: dotnet format --verify-no-changes --verbosity diagnostic
+      
+    - name: Run analyzers
+      run: dotnet build --configuration Release --verbosity normal /p:TreatWarningsAsErrors=true

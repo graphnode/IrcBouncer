@@ -249,7 +249,8 @@ internal static class Program
             disconnectedTcs.TrySetResult(true);
         };
         
-        var writeTask = Task.Run(() =>
+        // Create a dedicated background task for user input handling, bound to the application lifecycle
+        var writeTask = new Task(async () =>
         {
             try
             {
@@ -285,7 +286,7 @@ internal static class Program
                     var hasSensitiveData = LoggingExtensions.ContainsSensitiveData(toSend);
                     metrics.IncrementMessagesSent(command, hasSensitiveData);
                     
-                    _ = ircClient.SendAsync(toSend);
+                    await ircClient.SendAsync(toSend);
                     
                     if (isCommand && commandUpper == "QUIT")
                     {
@@ -306,7 +307,10 @@ internal static class Program
             {
                 cts.Cancel();
             }
-        }, cts.Token);
+        }, cts.Token, TaskCreationOptions.LongRunning);
+        
+        // Start the dedicated background task
+        writeTask.Start();
 
         try
         {

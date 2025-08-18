@@ -42,6 +42,16 @@ public sealed class TcpConnectionOptions
     public int KeepAliveIntervalMs { get; set; } = 1000;
 
     /// <summary>
+    /// Buffer size for StreamReader in bytes. Default: 8192 (8KB).
+    /// </summary>
+    public int ReadBufferSize { get; set; } = 8192;
+
+    /// <summary>
+    /// Buffer size for StreamWriter in bytes. Default: 8192 (8KB).
+    /// </summary>
+    public int WriteBufferSize { get; set; } = 8192;
+
+    /// <summary>
     /// Optional callback to customize SSL/TLS certificate validation. 
     /// By default, uses the standard .NET certificate validation which ensures security.
     /// 
@@ -188,8 +198,8 @@ public sealed class EventTcpClient : IConnection
             }
 
             _reader = new StreamReader(netStream, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: false,
-                bufferSize: 8192, leaveOpen: false);
-            _writer = new StreamWriter(netStream, new UTF8Encoding(false), 8192, leaveOpen: false);
+                bufferSize: _options.ReadBufferSize, leaveOpen: false);
+            _writer = new StreamWriter(netStream, new UTF8Encoding(false), _options.WriteBufferSize, leaveOpen: false);
             _writer.NewLine = "\r\n";
             _writer.AutoFlush = true;
 
