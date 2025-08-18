@@ -2,7 +2,6 @@
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace IrcBouncer;
@@ -111,18 +110,17 @@ public sealed class EventTcpClient : IConnection
     /// Connects to the specified host and port with optional TLS encryption.
     /// The connection lifecycle: Connect -> Connected event -> Data events -> Disconnected event.
     /// </summary>
-    public async Task ConnectAsync(string host, int port, bool useTls = true, CancellationToken? cancellationToken = null)
+    public async Task ConnectAsync(string host, int port, bool useTls = true,
+        CancellationToken? cancellationToken = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(EventTcpClient));
 
         _connectionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken ?? CancellationToken.None);
-        
+
         // Apply connection timeout
         if (_options.ConnectTimeoutMs > 0)
-        {
             _connectionCts.CancelAfter(_options.ConnectTimeoutMs);
-        }
-        
+
         try
         {
             await _client.ConnectAsync(host, port, _connectionCts.Token).ConfigureAwait(false);
@@ -131,7 +129,7 @@ public sealed class EventTcpClient : IConnection
             if (_options.EnableKeepAlive)
             {
                 _client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-                
+
                 // Set keep-alive timing (Windows-specific, gracefully handled on other platforms)
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
@@ -139,8 +137,10 @@ public sealed class EventTcpClient : IConnection
                     {
                         var keepAliveValues = new byte[12];
                         BitConverter.GetBytes((uint)1).CopyTo(keepAliveValues, 0); // Enable
-                        BitConverter.GetBytes((uint)_options.KeepAliveTimeMs).CopyTo(keepAliveValues, 4); // Time before first probe
-                        BitConverter.GetBytes((uint)_options.KeepAliveIntervalMs).CopyTo(keepAliveValues, 8); // Interval between probes
+                        BitConverter.GetBytes((uint)_options.KeepAliveTimeMs)
+                            .CopyTo(keepAliveValues, 4); // Time before first probe
+                        BitConverter.GetBytes((uint)_options.KeepAliveIntervalMs)
+                            .CopyTo(keepAliveValues, 8); // Interval between probes
 
                         _client.Client.IOControl(IOControlCode.KeepAliveValues, keepAliveValues, null);
                     }
@@ -153,7 +153,7 @@ public sealed class EventTcpClient : IConnection
             }
 
             Stream netStream = _client.GetStream();
-            
+
             // Apply timeouts to the network stream
             if (netStream is NetworkStream networkStream)
             {
@@ -162,7 +162,7 @@ public sealed class EventTcpClient : IConnection
                 if (_options.WriteTimeoutMs > 0)
                     networkStream.WriteTimeout = _options.WriteTimeoutMs;
             }
-            
+
             if (useTls)
             {
 #pragma warning disable CA2000
@@ -183,33 +183,39 @@ public sealed class EventTcpClient : IConnection
                         ConnectionError?.Invoke(this, ex);
                     return;
                 }
+
                 netStream = ssl;
             }
 
-            _reader = new StreamReader(netStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 8192, leaveOpen: false);
-            _writer = new StreamWriter(netStream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), 8192, leaveOpen: false);
+            _reader = new StreamReader(netStream, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: false,
+                bufferSize: 8192, leaveOpen: false);
+            _writer = new StreamWriter(netStream, new UTF8Encoding(false), 8192, leaveOpen: false);
             _writer.NewLine = "\r\n";
             _writer.AutoFlush = true;
-            
+
             // Start the read task as a dedicated background task bound to the instance lifecycle
             _readTask = ReadLoopAsync(_connectionCts.Token);
-            
+
             // Fire Connected event after everything is set up
             Connected?.Invoke(this, EventArgs.Empty);
-            
+
             // Wait for the read task to complete (connection closed or cancelled)
-            await _readTask.ConfigureAwait(false);
+            //await _readTask.ConfigureAwait(false);
         }
+        catch (TaskCanceledException ex)
+        {
+            throw new OperationCanceledException(ex.Message, ex, _connectionCts.Token);;
+        }
+        catch (OperationCanceledException) { /* Ignore */ }
         catch (Exception ex)
         {
-            if (ex is not OperationCanceledException)
-                ConnectionError?.Invoke(this, ex);
+            ConnectionError?.Invoke(this, ex);
         }
-        finally
-        {
-            // Ensure Disconnected is fired exactly once
-            FireDisconnectedOnce();
-        }
+        // finally
+        // {
+        //     // Ensure Disconnected is fired exactly once
+        //     FireDisconnectedOnce();
+        // }
     }
 
     /// <summary>
@@ -292,11 +298,9 @@ public sealed class EventTcpClient : IConnection
             while (!cancellationToken.IsCancellationRequested && _reader != null)
             {
                 var line = await _reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                
                 if (line == null) 
-                {
-                    // Normal closure - remote end closed the connection
                     break;
-                }
                 
                 Data?.Invoke(this, line);
             }

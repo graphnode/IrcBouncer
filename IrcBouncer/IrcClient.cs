@@ -71,7 +71,7 @@ public sealed class IrcClient : IDisposable
     /// <summary>
     /// Connects to an IRC server with the specified parameters.
     /// </summary>
-    public async Task ConnectAsync(string server, int port, bool useTls, string nick, string user, string real, string? pass = null, CancellationToken cancellationToken = default)
+    public Task ConnectAsync(string server, int port, bool useTls, string nick, string user, string real, string? pass = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -81,13 +81,15 @@ public sealed class IrcClient : IDisposable
             Real = real;
             Pass = pass;
             
-            await _connection.ConnectAsync(server, port, useTls, cancellationToken).ConfigureAwait(false);
+            _ = _connection.ConnectAsync(server, port, useTls, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             Error?.Invoke(this, ex);
             throw;
         }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>

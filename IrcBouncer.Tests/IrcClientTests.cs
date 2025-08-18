@@ -15,7 +15,7 @@ public class IrcClientTests
         public event EventHandler<Exception>? ConnectionError;
         public event EventHandler? Disconnected;
 
-        public Task ConnectAsync(string host, int port, bool useTls, CancellationToken? cancellationToken = null)
+        public Task ConnectAsync(string host, int port, bool useTls, CancellationToken? cancellationToken)
         {
             IsConnected = true;
             Connected?.Invoke(this, EventArgs.Empty);
@@ -27,7 +27,7 @@ public class IrcClientTests
             return Write(line, CancellationToken.None);
         }
 
-        public Task Write(string line, CancellationToken cancellationToken = default)
+        public Task Write(string line, CancellationToken cancellationToken)
         {
             if (IsConnected)
             {

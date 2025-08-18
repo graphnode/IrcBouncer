@@ -192,7 +192,7 @@ public class EventTcpClientTests
         var exceptions = new List<Exception>();
 
         // Act - Attempt concurrent writes (should be serialized internally)
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             var index = i;
             tasks.Add(Task.Run(async () =>

@@ -37,11 +37,11 @@
 29. [x] IRC domain: Add handlers/events for common messages (PING/PONG, NOTICE, PRIVMSG, JOIN/PART, ERROR) in the protocol layer.
 30. [x] IRC domain: Implement basic rate limiting for outgoing messages to avoid server flood-kick (configurable).
 
-31. [ ] Testing: Add unit tests for command formatting (PASS/NICK/USER), slash-command mapping, and PING/PONG behavior.
-32. [ ] Testing: Add integration tests with a loopback TCP server that simulates IRC server responses (non-TLS path for speed).
-33. [ ] Testing: Add tests for TLS-enabled path using mocks/fakes for SslStream or by abstracting the handshake behind an interface.
-34. [ ] Testing: Verify event sequencing and lifecycle (Connected -> Data -> Disconnected), including cancellation and error paths.
-35. [ ] Testing: Add concurrency tests ensuring write serialization and no race conditions during disconnect.
+31. [x] Testing: Add unit tests for command formatting (PASS/NICK/USER), slash-command mapping, and PING/PONG behavior.
+32. [x] Testing: Add integration tests with a loopback TCP server that simulates IRC server responses (non-TLS path for speed).
+33. [x] Testing: Add tests for TLS-enabled path using mocks/fakes for SslStream or by abstracting the handshake behind an interface.
+34. [x] Testing: Verify event sequencing and lifecycle (Connected -> Data -> Disconnected), including cancellation and error paths.
+35. [x] Testing: Add concurrency tests ensuring write serialization and no race conditions during disconnect.
 
 36. [ ] Logging: Introduce Microsoft.Extensions.Logging; avoid Console I/O in library code. Make log level configurable.
 37. [ ] Observability: Add structured logging and optional redaction for sensitive data (e.g., PASS). Consider basic counters via System.Diagnostics.Metrics.

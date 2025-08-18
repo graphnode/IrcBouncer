@@ -126,6 +126,46 @@ internal static class Program
         return await parseResult.InvokeAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Parses slash commands and maps them to IRC commands.
+    /// Maps "/leave" to "PART" and "/exit" to "QUIT", preserves other commands.
+    /// </summary>
+    /// <param name="input">The input string to parse</param>
+    /// <returns>The parsed IRC command</returns>
+    public static string ParseSlashCommand(string input)
+    {
+        if (!input.StartsWith('/'))
+            return input;
+
+        if (input.Length <= 1)
+            return input;
+
+        var cmdLine = input[1..];
+        var spaceIndex = cmdLine.IndexOf(' ', StringComparison.InvariantCulture);
+        
+        if (spaceIndex > 0)
+        {
+            var commandUpper = cmdLine[..spaceIndex].ToUpperInvariant();
+            commandUpper = commandUpper switch
+            {
+                "LEAVE" => "PART",
+                "EXIT" => "QUIT",
+                _ => commandUpper
+            };
+            return commandUpper + cmdLine[spaceIndex..];
+        }
+        else
+        {
+            var commandUpper = cmdLine.ToUpperInvariant() switch
+            {
+                "LEAVE" => "PART",
+                "EXIT" => "QUIT",
+                var c => c
+            };
+            return commandUpper;
+        }
+    }
+
     [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
     private static async Task<int> RunAsync(string server, int port, bool useTls, string nick, string user, string real, string? pass, CancellationToken cancellationToken)
     {
@@ -178,34 +218,23 @@ internal static class Program
                         break;
 
                     var original = input;
+                    var toSend = ParseSlashCommand(original);
                     var isCommand = original.StartsWith('/');
-                    var toSend = original;
                     string? commandUpper = null;
-                    if (isCommand)
+                    
+                    if (isCommand && original.Length > 1)
                     {
                         var cmdLine = original[1..];
                         var spaceIndex = cmdLine.IndexOf(' ', StringComparison.InvariantCulture);
-                        if (spaceIndex > 0)
+                        commandUpper = spaceIndex > 0 
+                            ? cmdLine[..spaceIndex].ToUpperInvariant() 
+                            : cmdLine.ToUpperInvariant();
+                        commandUpper = commandUpper switch
                         {
-                            commandUpper = cmdLine[..spaceIndex].ToUpperInvariant();
-                            commandUpper = commandUpper switch
-                            {
-                                "LEAVE" => "PART",
-                                "EXIT" => "QUIT",
-                                _ => commandUpper
-                            };
-                            toSend = commandUpper + cmdLine[spaceIndex..];
-                        }
-                        else
-                        {
-                            commandUpper = cmdLine.ToUpperInvariant() switch
-                            {
-                                "LEAVE" => "PART",
-                                "EXIT" => "QUIT",
-                                var c => c
-                            };
-                            toSend = commandUpper;
-                        }
+                            "LEAVE" => "PART",
+                            "EXIT" => "QUIT",
+                            _ => commandUpper
+                        };
                     }
 
                     Console.Out.WriteLine($"> {toSend}");
@@ -233,30 +262,30 @@ internal static class Program
         try
         {
             // Start the connection task
-            var connectTask = ircClient.ConnectAsync(server, port, useTls, nick, user, real, pass, cts.Token);
+            await ircClient.ConnectAsync(server, port, useTls, nick, user, real, pass, cts.Token);
             
-            // Wait for either write task or connect task to complete
-            await Task.WhenAny(writeTask, connectTask).ConfigureAwait(false);
+            // Wait for either write task to complete
+            await writeTask.ConfigureAwait(false);
             
             // If graceful shutdown was requested via Ctrl+C, initiate proper shutdown sequence
             if (gracefulShutdownRequested)
             {
                 try
                 {
-                    Console.WriteLine(@"Sending QUIT command...");
+                    Console.WriteLine("Sending QUIT command...");
                     await ircClient.SendAsync("QUIT :Graceful shutdown", cts.Token).ConfigureAwait(false);
                     
-                    Console.WriteLine(@"Disconnecting...");
+                    Console.WriteLine("Disconnecting...");
                     ircClient.Disconnect();
                     
-                    Console.WriteLine(@"Waiting for disconnect confirmation...");
+                    Console.WriteLine("Waiting for disconnect confirmation...");
                     // Wait for Disconnected event with a timeout
                     using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                     await disconnectedTcs.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
-                    Console.WriteLine(@"Graceful shutdown timeout, forcing exit.");
+                    Console.WriteLine("Graceful shutdown timeout, forcing exit.");
                 }
                 catch (Exception ex)
                 {

@@ -3,99 +3,75 @@
 /// <summary>
 /// Base class for IRC event arguments containing common message information.
 /// </summary>
-public abstract class IrcEventArgsBase : EventArgs
+public abstract class IrcEventArgsBase(string rawMessage, IrcMessage message) : EventArgs
 {
     /// <summary>
     /// The original raw IRC message.
     /// </summary>
-    public string RawMessage { get; }
+    public string RawMessage { get; } = rawMessage;
 
     /// <summary>
     /// The parsed IRC message structure.
     /// </summary>
-    public IrcMessage Message { get; }
+    public IrcMessage Message { get; } = message;
 
     /// <summary>
     /// The source of the message (nick!user@host or server name).
     /// </summary>
     public string? Source => Message.Prefix;
-
-    protected IrcEventArgsBase(string rawMessage, IrcMessage message)
-    {
-        RawMessage = rawMessage;
-        Message = message;
-    }
 }
 
 /// <summary>
 /// Event arguments for PRIVMSG messages.
 /// </summary>
-public sealed class IrcPrivmsgEventArgs : IrcEventArgsBase
+public sealed class IrcPrivmsgEventArgs(string rawMessage, IrcMessage message) : IrcEventArgsBase(rawMessage, message)
 {
     /// <summary>
     /// The target of the message (channel or nick).
     /// </summary>
-    public string Target { get; }
+    public string Target { get; } = message.Parameters.FirstOrDefault() ?? string.Empty;
 
     /// <summary>
     /// The message text.
     /// </summary>
-    public string Text { get; }
+    public string Text { get; } = message.Trailing ?? string.Empty;
 
     /// <summary>
     /// True if this is a channel message, false if it's a private message.
     /// </summary>
     public bool IsChannelMessage => Target.StartsWith('#') || Target.StartsWith('&');
-
-    public IrcPrivmsgEventArgs(string rawMessage, IrcMessage message) : base(rawMessage, message)
-    {
-        Target = message.Parameters.FirstOrDefault() ?? string.Empty;
-        Text = message.Trailing ?? string.Empty;
-    }
 }
 
 /// <summary>
 /// Event arguments for NOTICE messages.
 /// </summary>
-public sealed class IrcNoticeEventArgs : IrcEventArgsBase
+public sealed class IrcNoticeEventArgs(string rawMessage, IrcMessage message) : IrcEventArgsBase(rawMessage, message)
 {
     /// <summary>
     /// The target of the notice (channel or nick).
     /// </summary>
-    public string Target { get; }
+    public string Target { get; } = message.Parameters.FirstOrDefault() ?? string.Empty;
 
     /// <summary>
     /// The notice text.
     /// </summary>
-    public string Text { get; }
-
-    public IrcNoticeEventArgs(string rawMessage, IrcMessage message) : base(rawMessage, message)
-    {
-        Target = message.Parameters.FirstOrDefault() ?? string.Empty;
-        Text = message.Trailing ?? string.Empty;
-    }
+    public string Text { get; } = message.Trailing ?? string.Empty;
 }
 
 /// <summary>
 /// Event arguments for JOIN messages.
 /// </summary>
-public sealed class IrcJoinEventArgs : IrcEventArgsBase
+public sealed class IrcJoinEventArgs(string rawMessage, IrcMessage message) : IrcEventArgsBase(rawMessage, message)
 {
     /// <summary>
     /// The channel that was joined.
     /// </summary>
-    public string Channel { get; }
+    public string Channel { get; } = message.Parameters.FirstOrDefault() ?? message.Trailing ?? string.Empty;
 
     /// <summary>
     /// The nickname of the user who joined.
     /// </summary>
-    public string Nick { get; }
-
-    public IrcJoinEventArgs(string rawMessage, IrcMessage message) : base(rawMessage, message)
-    {
-        Channel = message.Parameters.FirstOrDefault() ?? message.Trailing ?? string.Empty;
-        Nick = ExtractNickFromPrefix(message.Prefix);
-    }
+    public string Nick { get; } = ExtractNickFromPrefix(message.Prefix);
 
     private static string ExtractNickFromPrefix(string? prefix)
     {
@@ -110,29 +86,22 @@ public sealed class IrcJoinEventArgs : IrcEventArgsBase
 /// <summary>
 /// Event arguments for PART messages.
 /// </summary>
-public sealed class IrcPartEventArgs : IrcEventArgsBase
+public sealed class IrcPartEventArgs(string rawMessage, IrcMessage message) : IrcEventArgsBase(rawMessage, message)
 {
     /// <summary>
     /// The channel that was left.
     /// </summary>
-    public string Channel { get; }
+    public string Channel { get; } = message.Parameters.FirstOrDefault() ?? string.Empty;
 
     /// <summary>
     /// The nickname of the user who left.
     /// </summary>
-    public string Nick { get; }
+    public string Nick { get; } = ExtractNickFromPrefix(message.Prefix);
 
     /// <summary>
     /// The part message (reason for leaving).
     /// </summary>
-    public string? PartMessage { get; }
-
-    public IrcPartEventArgs(string rawMessage, IrcMessage message) : base(rawMessage, message)
-    {
-        Channel = message.Parameters.FirstOrDefault() ?? string.Empty;
-        Nick = ExtractNickFromPrefix(message.Prefix);
-        PartMessage = message.Trailing;
-    }
+    public string? PartMessage { get; } = message.Trailing;
 
     private static string ExtractNickFromPrefix(string? prefix)
     {
@@ -147,15 +116,10 @@ public sealed class IrcPartEventArgs : IrcEventArgsBase
 /// <summary>
 /// Event arguments for ERROR messages from the server.
 /// </summary>
-public sealed class IrcErrorEventArgs : IrcEventArgsBase
+public sealed class IrcErrorEventArgs(string rawMessage, IrcMessage message) : IrcEventArgsBase(rawMessage, message)
 {
     /// <summary>
     /// The error message from the server.
     /// </summary>
-    public string ErrorMessage { get; }
-
-    public IrcErrorEventArgs(string rawMessage, IrcMessage message) : base(rawMessage, message)
-    {
-        ErrorMessage = message.Trailing ?? string.Empty;
-    }
+    public string ErrorMessage { get; } = message.Trailing ?? string.Empty;
 }
