@@ -93,7 +93,7 @@ internal static class Program
             serveLogLevelOption
         };
 
-        serve.SetAction(async (result, cancellationToken) =>
+        serve.SetAction(async (result, _) =>
         {
             var options = new BouncerOptions();
 
@@ -352,7 +352,7 @@ internal static class Program
         };
 
         // Create a dedicated background task for user input handling, bound to the application lifecycle
-        var writeTask = new Task(async () =>
+        var writeTask = new Task(async void () =>
         {
             try
             {
@@ -362,14 +362,13 @@ internal static class Program
                     if (input == null)
                         break;
 
-                    var original = input;
-                    var toSend = ParseSlashCommand(original);
-                    var isCommand = original.StartsWith('/');
+                    var toSend = ParseSlashCommand(input);
+                    var isCommand = input.StartsWith('/');
                     string? commandUpper = null;
 
-                    if (isCommand && original.Length > 1)
+                    if (isCommand && input.Length > 1)
                     {
-                        var cmdLine = original[1..];
+                        var cmdLine = input[1..];
                         var spaceIndex = cmdLine.IndexOf(' ', StringComparison.InvariantCulture);
                         commandUpper = spaceIndex > 0
                             ? cmdLine[..spaceIndex].ToUpperInvariant()
@@ -388,7 +387,7 @@ internal static class Program
                     var hasSensitiveData = LoggingExtensions.ContainsSensitiveData(toSend);
                     metrics.IncrementMessagesSent(command, hasSensitiveData);
 
-                    await ircClient.SendAsync(toSend);
+                    await ircClient.SendAsync(toSend, cts.Token);
 
                     if (isCommand && commandUpper == "QUIT")
                     {
@@ -407,7 +406,7 @@ internal static class Program
             }
             finally
             {
-                cts.Cancel();
+                await cts.CancelAsync();
             }
         }, cts.Token, TaskCreationOptions.LongRunning);
 

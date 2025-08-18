@@ -66,9 +66,9 @@ Legend: [ ] = Not started, [*] = In progress, [x] = Done
 46. [x] Architecture scaffolding: define server-side abstractions (IDownstreamSession, IUpstreamConnection, IRouter), and a lightweight SessionRegistry.
 47. [x] Configuration model: bind address/port, downstream TLS enable flag, server certificate path/password, upstream host/port, upstream TLS flag (default on), shared secret for downstream auth, limits (max sessions, rate).
 48. [x] Downstream listener: implement BouncerServer accept loop with CancellationToken, connection limit semaphore, and optional TLS using SslStream over TcpClient.
-49. [ ] ClientSession scaffolding: per-connection read/write loops with UTF-8 + CRLF framing, safe disposal, and cancellation-aware shutdown.
-50. [ ] UpstreamConnectionManager: wrap EventTcpClient to expose connect/disconnect, state, and events; ensure TLS defaults, SNI, and optional reconnect backoff.
-51. [ ] Router: implement fan-in (sessions → upstream) with serialized writes and fan-out (upstream → all sessions) with backpressure handling.
+49. [x] ClientSession scaffolding: per-connection read/write loops with UTF-8 + CRLF framing, safe disposal, and cancellation-aware shutdown.
+50. [x] UpstreamConnectionManager: wrap EventTcpClient to expose connect/disconnect, state, and events; ensure TLS defaults, SNI, and optional reconnect backoff.
+51. [x] Router: implement fan-in (sessions → upstream) with serialized writes and fan-out (upstream → all sessions) with backpressure handling.
 52. [ ] Authentication: require PASS from downstream clients before relaying; validate against configured shared secret; handle error and disconnect flows.
 53. [ ] Rate limiting and quotas: per-session basic message rate and optional burst limits to prevent abuse.
 54. [x] CLI: add `serve` command and options for downstream bind/TLS/cert and upstream host/port/TLS/secret; integrate with System.CommandLine.
