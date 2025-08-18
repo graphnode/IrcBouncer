@@ -1,4 +1,4 @@
-﻿# IrcBouncer
+# IrcBouncer
 
 A simple, event-driven IRC client/bouncer console application built on .NET 9.0. It connects to an IRC server (TLS by default), lets you send raw IRC commands from the console, and prints incoming messages.
 

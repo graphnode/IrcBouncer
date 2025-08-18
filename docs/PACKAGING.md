@@ -1,4 +1,4 @@
-﻿# IrcBouncer Release Packaging Guide
+# IrcBouncer Release Packaging Guide
 
 This document provides comprehensive instructions for creating releases and distributing IrcBouncer.
 

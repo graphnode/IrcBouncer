@@ -1,4 +1,4 @@
-﻿# Contributing to IrcBouncer
+# Contributing to IrcBouncer
 
 We welcome contributions to IrcBouncer! This document provides guidelines for contributing to the project.
 

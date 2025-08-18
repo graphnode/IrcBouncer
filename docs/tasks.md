@@ -1,4 +1,4 @@
-﻿# Improvement Tasks Checklist
+# Improvement Tasks Checklist
 
 1. [x] Add a .gitignore to exclude bin/, obj/, .idea/.vs, and other generated artifacts from source control.
 2. [x] Remove committed bin/ and obj/ directories from the repository history and working tree.

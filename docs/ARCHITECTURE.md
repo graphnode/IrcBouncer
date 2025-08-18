@@ -1,4 +1,4 @@
-﻿# IrcBouncer Architecture Documentation
+# IrcBouncer Architecture Documentation
 
 This document describes the connection lifecycle, TLS behavior, error handling, and exit semantics of IrcBouncer.
 

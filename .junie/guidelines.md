@@ -1,4 +1,4 @@
-﻿# IrcBouncer Development Guidelines
+# IrcBouncer Development Guidelines
 
 ## Build/Configuration Instructions
 

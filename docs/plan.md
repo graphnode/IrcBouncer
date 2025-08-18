@@ -1,4 +1,4 @@
-﻿# IrcBouncer — Project Improvement Plan
+# IrcBouncer — Project Improvement Plan
 
 Date: 2025-08-18
 Last Updated: 2025-08-18
