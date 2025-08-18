@@ -43,8 +43,8 @@
 34. [x] Testing: Verify event sequencing and lifecycle (Connected -> Data -> Disconnected), including cancellation and error paths.
 35. [x] Testing: Add concurrency tests ensuring write serialization and no race conditions during disconnect.
 
-36. [ ] Logging: Introduce Microsoft.Extensions.Logging; avoid Console I/O in library code. Make log level configurable.
-37. [ ] Observability: Add structured logging and optional redaction for sensitive data (e.g., PASS). Consider basic counters via System.Diagnostics.Metrics.
+36. [x] Logging: Introduce Microsoft.Extensions.Logging; avoid Console I/O in library code. Make log level configurable.
+37. [x] Observability: Add structured logging and optional redaction for sensitive data (e.g., PASS). Consider basic counters via System.Diagnostics.Metrics.
 
 38. [ ] Performance: Make buffer sizes configurable and minimize allocations in the read loop; consider System.IO.Pipelines if throughput becomes a goal.
 39. [ ] Performance: Avoid Task.Run for the read loop; use a dedicated background Task bound to the instance lifecycle.

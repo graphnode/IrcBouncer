@@ -204,7 +204,7 @@ public sealed class EventTcpClient : IConnection
         }
         catch (TaskCanceledException ex)
         {
-            throw new OperationCanceledException(ex.Message, ex, _connectionCts.Token);;
+            throw new OperationCanceledException(ex.Message, ex, _connectionCts.Token);
         }
         catch (OperationCanceledException) { /* Ignore */ }
         catch (Exception ex)

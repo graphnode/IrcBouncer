@@ -1,6 +1,8 @@
 ﻿using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 
 namespace IrcBouncer;
 
@@ -49,6 +51,12 @@ internal static class Program
             Arity = ArgumentArity.ExactlyOne
         };
 
+        var logLevelOption = new Option<LogLevel?>("--log-level")
+        {
+            Description = "Log level (Trace, Debug, Information, Warning, Error, Critical, None)",
+            Arity = ArgumentArity.ExactlyOne
+        };
+
         var root = new RootCommand("Simple IRC bouncer client. Type raw IRC lines to send. Use /quit to exit.")
         {
             serverOption,
@@ -58,7 +66,8 @@ internal static class Program
             nickOption,
             userOption,
             realOption,
-            passOption
+            passOption,
+            logLevelOption
         };
 
         root.SetAction(async (result, cancellationToken) =>
@@ -79,6 +88,7 @@ internal static class Program
             var user = result.GetValue(userOption);
             var real = result.GetValue(realOption);
             var pass = result.GetValue(passOption);
+            var logLevel = result.GetValue(logLevelOption);
             
             // Configuration precedence: CLI args > Environment variables > Defaults
             var finalServer = string.IsNullOrWhiteSpace(server) 
@@ -111,7 +121,29 @@ internal static class Program
             // TLS configuration: CLI flags take precedence, then environment variable, then default to true
             var useTls = tls || (!tls && !notls && Environment.GetEnvironmentVariable("IRC_TLS")?.ToUpperInvariant() != "FALSE"); // default to true unless explicitly disabled
             
-            var code = await RunAsync(finalServer, finalPort, useTls, finalNick, finalUser, finalReal, finalPass, cancellationToken).ConfigureAwait(false);
+            // Log level configuration: CLI arg > Environment variable > Default to Information
+            var finalLogLevel = logLevel ?? 
+                (Enum.TryParse<LogLevel>(Environment.GetEnvironmentVariable("IRC_LOG_LEVEL"), true, out var envLogLevel) 
+                    ? envLogLevel 
+                    : LogLevel.Information);
+
+            // Set up logging
+            using var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder
+                    .SetMinimumLevel(finalLogLevel)
+                    .AddSimpleConsole(options =>
+                    {
+                        options.IncludeScopes = false;
+                        options.SingleLine = true;
+                        options.ColorBehavior = LoggerColorBehavior.Enabled;
+                        options.TimestampFormat = "[HH:mm:ss] ";
+                        options.UseUtcTimestamp = false;
+                    });
+            });
+            var logger = loggerFactory.CreateLogger("IrcBouncer.Program");
+            
+            var code = await RunAsync(finalServer, finalPort, useTls, finalNick, finalUser, finalReal, finalPass, logger, cancellationToken).ConfigureAwait(false);
             Environment.ExitCode = code;
         });
         
@@ -167,43 +199,53 @@ internal static class Program
     }
 
     [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
-    private static async Task<int> RunAsync(string server, int port, bool useTls, string nick, string user, string real, string? pass, CancellationToken cancellationToken)
+    private static async Task<int> RunAsync(string server, int port, bool useTls, string nick, string user, string real, string? pass, ILogger logger, CancellationToken cancellationToken)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var metrics = new IrcMetrics();
         var disconnectedTcs = new TaskCompletionSource<bool>();
         var gracefulShutdownRequested = false;
+        var connectionStartTime = DateTime.UtcNow;
 
         Console.CancelKeyPress += async (_, e) => 
         { 
             e.Cancel = true; 
-            Console.WriteLine("\nGraceful shutdown requested...");
+            logger.LogInformation("Graceful shutdown requested");
             gracefulShutdownRequested = true;
             await cts.CancelAsync().ConfigureAwait(false); 
         };
 
-        Console.WriteLine($"Connecting to {server}:{port} (TLS={useTls}) as {nick} ... Press Ctrl+C to quit.");
+        logger.LogInformation("Connecting to {Server}:{Port} (TLS={UseTls}) as {Nick} ... Press Ctrl+C to quit", 
+            server, port, useTls, nick);
 
         using var connection = new EventTcpClient();
         using var ircClient = new IrcClient(connection);
 
         ircClient.Connected += (_, _) =>
         {
-            Console.WriteLine("Connected and authenticated to IRC server.");
+            logger.LogInformation("Connected and authenticated to IRC server");
+            metrics.IncrementConnections(server, useTls);
         };
 
         ircClient.MessageReceived += (_, message) =>
         {
-            Console.WriteLine($"< {message}");
+            logger.LogIncomingMessage(message);
+            var command = IrcMetrics.ExtractCommand(message);
+            metrics.IncrementMessagesReceived(command);
         };
 
         ircClient.Error += (_, ex) =>
         {
-            Console.Error.WriteLine($"Error: {ex.Message}");
+            logger.LogError(ex, "IRC client error occurred");
+            metrics.IncrementErrors("irc_client");
         };
 
         ircClient.Disconnected += (_, _) =>
         {
-            Console.WriteLine("Disconnected.");
+            logger.LogInformation("Disconnected from IRC server");
+            var connectionDuration = (DateTime.UtcNow - connectionStartTime).TotalSeconds;
+            metrics.RecordConnectionDuration(connectionDuration, server);
+            metrics.IncrementDisconnections(gracefulShutdownRequested ? "user" : "remote");
             disconnectedTcs.TrySetResult(true);
         };
         
@@ -237,7 +279,11 @@ internal static class Program
                         };
                     }
 
-                    Console.Out.WriteLine($"> {toSend}");
+                    logger.LogOutgoingMessage(toSend);
+                    
+                    var command = IrcMetrics.ExtractCommand(toSend);
+                    var hasSensitiveData = LoggingExtensions.ContainsSensitiveData(toSend);
+                    metrics.IncrementMessagesSent(command, hasSensitiveData);
                     
                     _ = ircClient.SendAsync(toSend);
                     
@@ -251,7 +297,10 @@ internal static class Program
             catch (Exception ex)
             {
                 if (ex is not OperationCanceledException)
-                    Console.Error.WriteLine($"Error: {ex.Message}");
+                {
+                    logger.LogError(ex, "Write task error occurred");
+                    metrics.IncrementErrors("write_task");
+                }
             }
             finally
             {
@@ -272,31 +321,35 @@ internal static class Program
             {
                 try
                 {
-                    Console.WriteLine("Sending QUIT command...");
+                    logger.LogInformation("Sending QUIT command");
                     await ircClient.SendAsync("QUIT :Graceful shutdown", cts.Token).ConfigureAwait(false);
                     
-                    Console.WriteLine("Disconnecting...");
+                    logger.LogInformation("Disconnecting from server");
                     ircClient.Disconnect();
                     
-                    Console.WriteLine("Waiting for disconnect confirmation...");
+                    logger.LogInformation("Waiting for disconnect confirmation");
                     // Wait for Disconnected event with a timeout
                     using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                     await disconnectedTcs.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
-                    Console.WriteLine("Graceful shutdown timeout, forcing exit.");
+                    logger.LogWarning("Graceful shutdown timeout, forcing exit");
                 }
                 catch (Exception ex)
                 {
-                    await Console.Error.WriteLineAsync($"Error during graceful shutdown: {ex.Message}").ConfigureAwait(false);
+                    logger.LogError(ex, "Error during graceful shutdown");
+                    metrics.IncrementErrors("graceful_shutdown");
                 }
             }
         }
         catch (Exception ex)
         {
             if (ex is not OperationCanceledException)
-                await Console.Error.WriteLineAsync($"Connection error: {ex.Message}").ConfigureAwait(false);
+            {
+                logger.LogError(ex, "Connection error occurred");
+                metrics.IncrementErrors("connection");
+            }
         }
         
         return 0;
